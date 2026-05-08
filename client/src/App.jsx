@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ChatBox from './components/ChatBox';
 import AdminProductPage from './pages/AdminProductPage';
 import AdminCategoryPage from './pages/AdminCategoryPage';
 import AdminOrderPage from './pages/AdminOrderPage';
@@ -16,9 +17,11 @@ import AdminLayout from './components/AdminLayout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
+import AuthSuccessPage from './pages/AuthSuccessPage';
 import ProductDetailsPage from './pages/ProductDetailsPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import RegisterVendorPage from './pages/RegisterVendorPage';
 
 import ProfilePage from './pages/ProfilePage';
 
@@ -58,6 +61,8 @@ function App() {
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/auth-success" element={<AuthSuccessPage />} />
+            <Route path="/register-vendor" element={<RegisterVendorPage />} />
             
             {/* Private Routes */}
             <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
@@ -143,6 +148,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
+        <ChatBox />
       </div>
     </Router>
   );

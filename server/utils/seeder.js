@@ -50,31 +50,31 @@ const importData = async () => {
       { 
         name: 'Điện thoại', 
         slug: 'dien-thoai', 
-        image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=200&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1598327105666-5b89351cb315?q=80&w=400&auto=format&fit=crop',
         description: 'Smartphone chính hãng' 
       },
       { 
         name: 'Laptop', 
         slug: 'laptop', 
-        image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=200&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=400&auto=format&fit=crop',
         description: 'Máy tính xách tay các loại' 
       },
       { 
         name: 'Phụ kiện', 
         slug: 'phu-kien', 
-        image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=200&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=400&auto=format&fit=crop',
         description: 'Cáp, sạc, ốp lưng, sạc dự phòng' 
       },
       { 
         name: 'Âm thanh', 
         slug: 'am-thanh', 
-        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=200&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=400&auto=format&fit=crop',
         description: 'Tai nghe, loa Bluetooth' 
       },
       { 
         name: 'Đồng hồ', 
         slug: 'dong-ho', 
-        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=200&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=400&auto=format&fit=crop',
         description: 'Smartwatch, vòng đeo tay thông minh' 
       }
     ]);
@@ -106,7 +106,7 @@ const importData = async () => {
         price: 27990000,
         description: 'Galaxy AI is here. Sức mạnh vi xử lý Snapdragon 8 Gen 3 for Galaxy, khung viền Titanium.',
         category: categories[0]._id,
-        image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?q=80&w=800&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1706114408101-35222b467610?q=80&w=800&auto=format&fit=crop',
         countInStock: 30,
         rating: 4.8,
         numReviews: 215,
@@ -135,7 +135,7 @@ const importData = async () => {
         price: 5490000,
         description: 'Chống ồn chủ động (ANC) tốt hơn gấp 2 lần. Hộp sạc hỗ trợ USB-C.',
         category: categories[3]._id,
-        image: 'https://images.unsplash.com/photo-1588156979435-379b9d802b0a?q=80&w=800&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?q=80&w=800&auto=format&fit=crop',
         countInStock: 100,
         rating: 4.7,
         numReviews: 540,

@@ -46,6 +46,10 @@ const RegisterPage = () => {
     }
   };
 
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/auth/google`;
+  };
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100-64px)] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
@@ -117,6 +121,23 @@ const RegisterPage = () => {
               } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors`}
             >
               {loading ? 'Đang xử lý...' : 'Đăng ký'}
+            </button>
+          </div>
+
+          <div className="relative flex items-center justify-center py-2">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="flex-shrink mx-4 text-gray-400 text-xs uppercase">Hoặc</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2" />
+              Đăng ký bằng Google
             </button>
           </div>
 

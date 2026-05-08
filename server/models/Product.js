@@ -55,6 +55,10 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Product description is required']
   },
+  vendor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',

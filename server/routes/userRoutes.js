@@ -1,15 +1,41 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, verifyEmail, loginUser, getUserProfile, toggleWishlist, addAddress, removeAddress, getUsers, forgotPassword, resetPassword } = require('../controllers/userController');
+const { 
+  registerUser, 
+  verifyEmail, 
+  loginUser, 
+  getUserProfile, 
+  toggleWishlist, 
+  addAddress, 
+  removeAddress, 
+  getUsers, 
+  forgotPassword, 
+  resetPassword,
+  registerVendor,
+  approveVendor,
+  googleAuthCallback
+} = require('../controllers/userController');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
+const passport = require('passport');
 
 router.post('/', registerUser);
 router.get('/verify/:token', verifyEmail);
 router.post('/login', loginUser);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:resetToken', resetPassword);
+
+// Google Auth Routes
+router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/auth/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  googleAuthCallback
+);
+
 router.get('/', protect, isAdmin, getUsers);
 router.get('/profile', protect, getUserProfile);
+router.put('/register-vendor', protect, registerVendor);
+router.put('/:id/approve-vendor', protect, isAdmin, approveVendor);
+
 router.post('/wishlist', protect, toggleWishlist);
 router.post('/addresses', protect, addAddress);
 router.delete('/addresses/:addressId', protect, removeAddress);

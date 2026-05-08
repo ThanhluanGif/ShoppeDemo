@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ShoppingCart, Star, ShieldCheck, Truck, Heart, MessageCircle, ChevronRight, Share2, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Star, ShieldCheck, Truck, Heart, MessageCircle, ChevronRight, Share2, AlertCircle, CheckCircle } from 'lucide-react';
 import { get, post } from '../services/api';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
@@ -16,6 +16,7 @@ const ProductDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariation, setSelectedVariation] = useState(null);
+  const [hasPurchased, setHasPurchased] = useState(false);
   
   // Review state
   const [rating, setRating] = useState(5);
@@ -29,6 +30,19 @@ const ProductDetailsPage = () => {
       if (data.variations && data.variations.length > 0) {
         setSelectedVariation(data.variations[0]);
       }
+
+      // Check purchase history if user is logged in
+      if (user) {
+         try {
+           const { data: orders } = await get('/orders/myorders');
+           const purchased = orders.some(order => 
+             order.orderItems.some(item => (item.product?._id || item.product) === id)
+           );
+           setHasPurchased(purchased);
+         } catch (err) {
+           console.error('Error checking purchase history:', err);
+         }
+      }
     } catch (error) {
       console.error('Error fetching product:', error);
     } finally {
@@ -39,7 +53,7 @@ const ProductDetailsPage = () => {
   useEffect(() => {
     fetchProduct();
     window.scrollTo(0, 0);
-  }, [id]);
+  }, [id, user]);
 
   const handleAddToCart = (isBuyNow = false) => {
     if (product) {
@@ -96,12 +110,22 @@ const ProductDetailsPage = () => {
   const stockCount = selectedVariation ? selectedVariation.countInStock : product.countInStock;
 
   return (
-    <div className="bg-[#f5f5f5] min-h-screen pb-12">
+    <div className="bg-[#f5f5f5] min-h-screen pb-12 font-sans">
       <Helmet>
         <title>{product.name} | ThanhLuanShop</title>
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        
+        {/* Purchase Badge */}
+        {hasPurchased && (
+          <div className="bg-green-50 border border-green-200 p-3 mb-4 rounded-sm flex items-center gap-2 text-green-700 text-sm animate-in fade-in slide-in-from-top-2">
+             <CheckCircle className="w-5 h-5" />
+             <span className="font-bold">Bạn đã mua sản phẩm này.</span>
+             <span className="text-gray-500 text-xs">Hãy để lại đánh giá để giúp người mua khác nhé!</span>
+          </div>
+        )}
+
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-gray-600 mb-5">
           <Link to="/" className="text-blue-700 hover:text-shopee">thanhluan shop</Link>
@@ -141,7 +165,7 @@ const ProductDetailsPage = () => {
                 className="flex items-center gap-2 group transition"
               >
                 <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-shopee text-shopee' : 'text-shopee'}`} />
-                <span className="text-sm">Đã thích ({product.numReviews + 124})</span>
+                <span className="text-sm">{isWishlisted ? 'Đã thích' : 'Yêu thích'} ({product.numReviews + (isWishlisted ? 125 : 124)})</span>
               </button>
             </div>
           </div>
@@ -452,4 +476,3 @@ const ProductDetailsPage = () => {
 };
 
 export default ProductDetailsPage;
-

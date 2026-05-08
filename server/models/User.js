@@ -26,9 +26,27 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      // Password is only required if no social ID is present
+      return !this.googleId && !this.facebookId;
+    },
     minlength: [8, 'Password must be at least 8 characters long'],
-    select: false // Don't return password by default in queries
+    select: false
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true // Allows multiple null values for unique index
+  },
+  facebookId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  authMethod: {
+    type: String,
+    enum: ['local', 'google', 'facebook'],
+    default: 'local'
   },
   phone: {
     type: String,
@@ -39,12 +57,37 @@ const userSchema = new mongoose.Schema({
     default: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
   },
   role: {
-  type: String,
-  enum: {
-    values: ['admin', 'customer'],
-    message: '{VALUE} is not a valid role'
+    type: String,
+    enum: {
+      values: ['admin', 'vendor', 'customer'],
+      message: '{VALUE} is not a valid role'
+    },
+    default: 'customer'
   },
-  default: 'customer'
+  vendorStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'rejected'],
+    default: 'none'
+  },
+  commissionRate: {
+    type: Number,
+    default: 5 // 5% commission for admin by default
+  },
+  shopName: {
+    type: String,
+    trim: true
+  },
+  shopDescription: {
+    type: String,
+    trim: true
+  },
+  shopLogo: {
+    type: String,
+    default: 'https://ui-avatars.com/api/?name=Shop&background=ee4d2d&color=fff'
+  },
+  balance: {
+    type: Number,
+    default: 0
   },
   isVerified: {
   type: Boolean,

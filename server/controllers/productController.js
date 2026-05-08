@@ -5,64 +5,71 @@ const cloudinary = require('../config/cloudinary');
 // @route   GET /api/products
 // @access  Public
 const getProducts = async (req, res) => {
+  const keyword = req.query.keyword ? {
+    name: {
+      $regex: req.query.keyword,
+      $options: 'i'
+    }
+  } : {};
+  const category = req.query.category ? { category: await findCategoryId(req.query.category) } : {};
+  const sort = req.query.sort || 'newest';
+
+  // Vendor filtering for Admin/Seller Centre
+  let vendorQuery = {};
+  // Check if it's an admin request (e.g. from /admin/products)
+  // In a real app we'd check the route, but here we can check if req.user exists and role is vendor
+  if (req.user && req.user.role === 'vendor') {
+    vendorQuery = { vendor: req.user._id };
+  }
+
   try {
-    const { keyword, minPrice, maxPrice, category, sort } = req.query;
-    let query = {};
+    const query = { ...keyword, ...category, ...vendorQuery };
+    
+    let sortQuery = { createdAt: -1 };
+    if (sort === 'price_asc') sortQuery = { price: 1 };
+    if (sort === 'price_desc') sortQuery = { price: -1 };
+    if (sort === 'popular') sortQuery = { rating: -1 };
 
-    if (keyword) {
-      query.$or = [
-        { name: { $regex: keyword, $options: 'i' } },
-        { brand: { $regex: keyword, $options: 'i' } }
-      ];
-    }
-
-    if (category) {
-      const Category = require('../models/Category');
-      const foundCategory = await Category.findOne({ name: category });
-      if (foundCategory) {
-        query.category = foundCategory._id;
-      } else {
-        // If category name doesn't exist, return empty results
-        return res.json([]);
-      }
-    }
-
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
-    }
-
-    let apiQuery = Product.find(query).populate('category', 'name slug');
-
-    // Sorting logic
-    if (sort === 'newest') {
-      apiQuery = apiQuery.sort({ createdAt: -1 });
-    } else if (sort === 'priceAsc') {
-      apiQuery = apiQuery.sort({ price: 1 });
-    } else if (sort === 'priceDesc') {
-      apiQuery = apiQuery.sort({ price: -1 });
-    } else {
-      apiQuery = apiQuery.sort({ createdAt: -1 }); // Default to newest
-    }
-
-    const products = await apiQuery;
+    const products = await Product.find(query)
+      .populate('category', 'name')
+      .sort(sortQuery);
+      
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get flash sale products
+// Helper to find category ID by name
+async function findCategoryId(name) {
+  const Category = require('../models/Category');
+  const cat = await Category.findOne({ name });
+  return cat ? cat._id : null;
+}
+
+// @desc    Fetch single product
+// @route   GET /api/products/:id
+// @access  Public
+const getProductById = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).populate('category', 'name');
+
+    if (product) {
+      res.json(product);
+    } else {
+      res.status(404).json({ message: 'Product not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get Flash Sale products
 // @route   GET /api/products/flashsale
 // @access  Public
 const getFlashSaleProducts = async (req, res) => {
   try {
-    const products = await Product.find({
-      isFlashSale: true,
-      flashSaleEndTime: { $gt: new Date() },
-      flashSaleStartTime: { $lte: new Date() }
-    });
+    const products = await Product.find({ isFlashSale: true }).limit(6);
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -71,36 +78,23 @@ const getFlashSaleProducts = async (req, res) => {
 
 // @desc    Create a product
 // @route   POST /api/products
-// @access  Private/Admin
+// @access  Private/Admin/Vendor
 const createProduct = async (req, res) => {
-  const { name, brand, price, description, countInStock, variations, isFlashSale, flashSalePrice, flashSaleStartTime, flashSaleEndTime, category } = req.body;
+  const { name, brand, category, description, price, countInStock, image } = req.body;
 
   try {
-    // Generate slug from name
-    const slug = name.toLowerCase().replace(/[^\w ]+/g, '').replace(/\s+/g, '-');
-
     const product = new Product({
       name,
-      slug,
-      brand,
       price,
-      description,
-      countInStock,
+      vendor: req.user._id,
+      image: image || 'https://via.placeholder.com/150',
+      brand,
       category,
-      variations: variations ? JSON.parse(variations) : [],
-      isFlashSale: isFlashSale === 'true',
-      flashSalePrice: flashSalePrice || 0,
-      flashSaleStartTime,
-      flashSaleEndTime,
+      countInStock,
+      numReviews: 0,
+      description,
+      slug: name.toLowerCase().replace(/ /g, '-') + '-' + Date.now()
     });
-
-    // If file uploaded via multer
-    if (req.file) {
-      product.image = req.file.path;
-      product.cloudinary_id = req.file.filename;
-    } else {
-      return res.status(400).json({ message: 'Please upload an image' });
-    }
 
     const createdProduct = await product.save();
     res.status(201).json(createdProduct);
@@ -111,40 +105,34 @@ const createProduct = async (req, res) => {
 
 // @desc    Update a product
 // @route   PUT /api/products/:id
-// @access  Private/Admin
+// @access  Private/Admin/Vendor
 const updateProduct = async (req, res) => {
-  const { name, brand, price, description, countInStock, variations, isFlashSale, flashSalePrice, flashSaleStartTime, flashSaleEndTime, category } = req.body;
+  const { name, price, description, image, brand, category, countInStock, isFlashSale, flashSalePrice, flashSaleStartTime, flashSaleEndTime } = req.body;
 
   try {
     const product = await Product.findById(req.params.id);
 
     if (product) {
-      product.name = name || product.name;
-      if (name) {
-        product.slug = name.toLowerCase().replace(/[^\w ]+/g, '').replace(/\s+/g, '-');
+      // Permission check: admin or owner
+      if (req.user.role !== 'admin' && product.vendor?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Bạn không có quyền sửa sản phẩm này' });
       }
-      product.brand = brand || product.brand;
+
+      product.name = name || product.name;
       product.price = price || product.price;
       product.description = description || product.description;
+      product.image = image || product.image;
+      product.brand = brand || product.brand;
       product.category = category || product.category;
       product.countInStock = countInStock !== undefined ? countInStock : product.countInStock;
       
-      if (variations) product.variations = JSON.parse(variations);
-      
-      product.isFlashSale = isFlashSale !== undefined ? isFlashSale === 'true' : product.isFlashSale;
+      // Flash Sale logic
+      if (isFlashSale !== undefined) {
+        product.isFlashSale = isFlashSale === 'true' || isFlashSale === true;
+      }
       product.flashSalePrice = flashSalePrice || product.flashSalePrice;
       product.flashSaleStartTime = flashSaleStartTime || product.flashSaleStartTime;
       product.flashSaleEndTime = flashSaleEndTime || product.flashSaleEndTime;
-
-      // Handle image update
-      if (req.file) {
-        // Delete old image from cloudinary
-        if (product.cloudinary_id) {
-          await cloudinary.uploader.destroy(product.cloudinary_id);
-        }
-        product.image = req.file.path;
-        product.cloudinary_id = req.file.filename;
-      }
 
       const updatedProduct = await product.save();
       res.json(updatedProduct);
@@ -158,16 +146,17 @@ const updateProduct = async (req, res) => {
 
 // @desc    Delete a product
 // @route   DELETE /api/products/:id
-// @access  Private/Admin
+// @access  Private/Admin/Vendor
 const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (product) {
-      // Delete image from cloudinary
-      if (product.cloudinary_id) {
-        await cloudinary.uploader.destroy(product.cloudinary_id);
+       // Permission check
+       if (req.user.role !== 'admin' && product.vendor?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Bạn không có quyền xóa sản phẩm này' });
       }
+
       await product.deleteOne();
       res.json({ message: 'Product removed' });
     } else {
@@ -193,7 +182,7 @@ const createProductReview = async (req, res) => {
       );
 
       if (alreadyReviewed) {
-        return res.status(400).json({ message: 'Product already reviewed' });
+        return res.status(400).json({ message: 'Bạn đã đánh giá sản phẩm này rồi' });
       }
 
       const review = {
@@ -211,23 +200,6 @@ const createProductReview = async (req, res) => {
 
       await product.save();
       res.status(201).json({ message: 'Review added' });
-    } else {
-      res.status(404).json({ message: 'Product not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc    Fetch single product
-// @route   GET /api/products/:id
-// @access  Public
-const getProductById = async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-
-    if (product) {
-      res.json(product);
     } else {
       res.status(404).json({ message: 'Product not found' });
     }

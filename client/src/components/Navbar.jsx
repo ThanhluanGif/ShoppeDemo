@@ -29,10 +29,10 @@ const Navbar = () => {
       {/* Top Header */}
       <div className="hidden md:flex justify-between items-center px-4 sm:px-6 lg:px-8 py-1.5 text-white/60 text-[11px] max-w-7xl mx-auto border-b border-white/5">
         <div className="flex gap-4">
-          {user?.role === 'admin' ? (
+          {user?.role === 'admin' || user?.role === 'vendor' ? (
             <Link to="/admin/dashboard" className="hover:text-shopee transition-colors">Kênh Người Bán</Link>
           ) : (
-            <Link to="/" className="hover:text-shopee transition-colors">Trở thành Người bán Shopee</Link>
+            <Link to="/register-vendor" className="hover:text-shopee transition-colors">Trở thành Người bán Shopee</Link>
           )}
           <span className="w-[1px] h-3 bg-white/10"></span>
           <Link to="/" className="hover:text-shopee transition-colors">Tải ứng dụng</Link>

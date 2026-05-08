@@ -63,6 +63,22 @@ const orderSchema = mongoose.Schema(
       required: true,
       default: 0.0,
     },
+    vendor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    commissionRate: {
+      type: Number,
+      default: 0,
+    },
+    adminCommission: {
+      type: Number,
+      default: 0,
+    },
+    vendorEarnings: {
+      type: Number,
+      default: 0,
+    },
     coupon: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Coupon',

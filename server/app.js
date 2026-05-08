@@ -7,11 +7,14 @@ const orderRoutes = require('./routes/orderRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const configRoutes = require('./routes/configRoutes');
+const passport = require('passport');
+require('./config/passport');
 
 const app = express();
 
 // Middleware
 app.use(express.json());
+app.use(passport.initialize());
 
 // Cấu hình CORS
 app.use(cors());

@@ -40,14 +40,13 @@ const registerUser = async (req, res) => {
       const verifyUrl = `${req.protocol}://${req.get('host')}/api/users/verify/${verificationToken}`;
       const emailHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
-          <h2 style="color: #2563eb;">Xác nhận đăng ký tài khoản</h2>
+          <h2 style="color: #ee4d2d;">Xác nhận đăng ký tài khoản</h2>
           <p>Xin chào <strong>${user.username}</strong>,</p>
-          <p>Cảm ơn bạn đã đăng ký tài khoản tại Web Bán Hàng. Vui lòng nhấn vào nút bên dưới để xác nhận email của bạn:</p>
+          <p>Cảm ơn bạn đã đăng ký tài khoản tại ThanhLuanShop. Vui lòng nhấn vào nút bên dưới để xác nhận email của bạn:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${verifyUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; rounded: 5px; font-weight: bold;">Xác nhận Email</a>
+            <a href="${verifyUrl}" style="background-color: #ee4d2d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Xác nhận Email</a>
           </div>
           <p>Link này sẽ hết hạn sau 24 giờ.</p>
-          <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
           <hr/>
           <p style="font-size: 12px; color: #888;">Đây là email tự động, vui lòng không phản hồi.</p>
         </div>
@@ -69,7 +68,7 @@ const registerUser = async (req, res) => {
         email: user.email,
         role: user.role,
         token: generateToken(user._id),
-        message: 'Registration successful. Please check your email to verify your account.'
+        message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực.'
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
@@ -94,7 +93,7 @@ const verifyEmail = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification token' });
+      return res.status(400).json({ message: 'Link xác thực không hợp lệ hoặc đã hết hạn' });
     }
 
     user.isVerified = true;
@@ -102,9 +101,7 @@ const verifyEmail = async (req, res) => {
     user.verificationExpire = undefined;
     await user.save();
 
-    // Redirect to login page on frontend (assuming it's at /login)
-    // For now, return JSON. In a real app, you might res.redirect('http://localhost:3000/login?verified=true')
-    res.json({ message: 'Email verified successfully! You can now log in.' });
+    res.json({ message: 'Xác thực email thành công! Bạn có thể đăng nhập ngay.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -120,11 +117,6 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (user && (await user.comparePassword(password))) {
-      // Optional: Check if verified
-      // if (!user.isVerified) {
-      //   return res.status(401).json({ message: 'Please verify your email first' });
-      // }
-
       res.json({
         _id: user._id,
         username: user.username,
@@ -133,7 +125,7 @@ const loginUser = async (req, res) => {
         token: generateToken(user._id),
       });
     } else {
-      res.status(401).json({ message: 'Invalid email or password' });
+      res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -153,12 +145,79 @@ const getUserProfile = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
+        vendorStatus: user.vendorStatus,
+        shopName: user.shopName,
+        shopDescription: user.shopDescription,
+        shopLogo: user.shopLogo,
+        balance: user.balance,
         wishlist: user.wishlist,
-        addresses: user.addresses
+        addresses: user.addresses,
+        googleId: user.googleId,
+        facebookId: user.facebookId
       });
     } else {
       res.status(404).json({ message: 'User not found' });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Register as a vendor
+// @route   PUT /api/users/register-vendor
+// @access  Private
+const registerVendor = async (req, res) => {
+  const { shopName, shopDescription } = req.body;
+
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'vendor' || user.role === 'admin') {
+      return res.status(400).json({ message: 'Bạn đã là người bán hoặc admin' });
+    }
+
+    user.vendorStatus = 'pending';
+    user.shopName = shopName;
+    user.shopDescription = shopDescription;
+    
+    await user.save();
+
+    res.json({ 
+      message: 'Yêu cầu đăng ký bán hàng đã được gửi và đang chờ duyệt.',
+      vendorStatus: user.vendorStatus 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Approve or Reject vendor
+// @route   PUT /api/users/:id/approve-vendor
+// @access  Private/Admin
+const approveVendor = async (req, res) => {
+  const { status, commissionRate } = req.body; 
+
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (status === 'approved') {
+      user.role = 'vendor';
+      user.vendorStatus = 'approved';
+      user.commissionRate = commissionRate || user.commissionRate;
+    } else {
+      user.vendorStatus = 'rejected';
+    }
+
+    await user.save();
+    res.json({ message: `Đã ${status === 'approved' ? 'duyệt' : 'từ chối'} yêu cầu bán hàng.`, user });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -252,43 +311,28 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(20).toString('hex');
-
-    // Hash token and set to field
-    user.resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(resetToken)
-      .digest('hex');
-
-    // Set expire (10 minutes)
+    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
 
     await user.save({ validateBeforeSave: false });
 
-    // Send Email
     const resetUrl = `${req.protocol}://${req.get('host')}/api/users/resetpassword/${resetToken}`;
     const emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
-        <h2 style="color: #2563eb;">Khôi phục mật khẩu</h2>
-        <p>Bạn nhận được email này vì bạn (hoặc ai đó) đã yêu cầu khôi phục mật khẩu cho tài khoản của mình.</p>
+        <h2 style="color: #ee4d2d;">Khôi phục mật khẩu</h2>
         <p>Vui lòng nhấn vào nút bên dưới để đặt lại mật khẩu:</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Đặt lại mật khẩu</a>
+          <a href="${resetUrl}" style="background-color: #ee4d2d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Đặt lại mật khẩu</a>
         </div>
         <p>Link này sẽ hết hạn sau 10 phút.</p>
-        <p>Nếu bạn không yêu cầu điều này, vui lòng bỏ qua email này.</p>
         <hr/>
         <p style="font-size: 12px; color: #888;">Đây là email tự động, vui lòng không phản hồi.</p>
       </div>
     `;
 
     try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Khôi phục mật khẩu',
-        html: emailHtml
-      });
+      await sendEmail({ email: user.email, subject: 'Khôi phục mật khẩu', html: emailHtml });
       res.json({ message: 'Email sent successfully' });
     } catch (err) {
       user.resetPasswordToken = undefined;
@@ -305,16 +349,10 @@ const forgotPassword = async (req, res) => {
 // @route   PUT /api/users/resetpassword/:resetToken
 // @access  Public
 const resetPassword = async (req, res) => {
-  const resetPasswordToken = crypto
-    .createHash('sha256')
-    .update(req.params.resetToken)
-    .digest('hex');
+  const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
 
   try {
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() },
-    });
+    const user = await User.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } });
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired token' });
@@ -325,7 +363,6 @@ const resetPassword = async (req, res) => {
     user.resetPasswordExpire = undefined;
 
     await user.save();
-
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     if (error.name === 'ValidationError') {
@@ -334,6 +371,26 @@ const resetPassword = async (req, res) => {
     }
     res.status(500).json({ message: error.message });
   }
+};
+
+// @desc    Google OAuth Callback
+// @route   GET /api/users/auth/google/callback
+// @access  Public
+const googleAuthCallback = async (req, res) => {
+  const token = generateToken(req.user._id);
+  const userData = JSON.stringify({
+    _id: req.user._id,
+    username: req.user.username,
+    email: req.user.email,
+    role: req.user.role,
+    token: token
+  });
+
+  // Redirect to frontend with token and user data in URL or cookie
+  // For simplicity, we'll use a redirect to a frontend "auth-success" page
+  // You need to adjust the FRONTEND_URL in your .env
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  res.redirect(`${frontendUrl}/auth-success?token=${token}&user=${encodeURIComponent(userData)}`);
 };
 
 module.exports = {
@@ -346,5 +403,8 @@ module.exports = {
   removeAddress,
   getUsers,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  registerVendor,
+  approveVendor,
+  googleAuthCallback
 };

@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Heart, MapPin, Trash2, Plus, User as UserIcon, Phone, Mail, Package } from 'lucide-react';
+import { Heart, MapPin, Trash2, Plus, User as UserIcon, Phone, Mail, Package, Share2, CheckCircle } from 'lucide-react';
 import { post, del, get } from '../services/api';
 import { Link } from 'react-router-dom';
 
@@ -132,32 +132,33 @@ const ProfilePage = () => {
           </section>
 
           {/* Wishlist */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <Heart className="w-6 h-6 text-red-500 fill-current" />
-              <h2 className="text-2xl font-black text-gray-900">Sản phẩm yêu thích</h2>
+          <section className="bg-white p-6 rounded-sm shadow-sm border border-gray-100">
+            <div className="flex items-center gap-3 mb-6 border-b pb-4">
+              <Heart className="w-5 h-5 text-shopee fill-current" />
+              <h2 className="text-lg font-bold text-gray-800 tracking-tight uppercase">Sản phẩm yêu thích</h2>
             </div>
             
             {user.wishlist?.length === 0 ? (
-              <div className="bg-gray-50 p-12 rounded-3xl text-center text-gray-500">
-                Chưa có sản phẩm nào trong danh sách yêu thích.
+              <div className="bg-gray-50 py-12 rounded-sm text-center text-gray-500 text-sm">
+                Bạn chưa yêu thích sản phẩm nào.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {user.wishlist?.map((item) => (
-                  <div key={item._id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex gap-4 group">
-                    <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-xl" />
-                    <div className="flex-1">
-                      <Link to={`/product/${item._id}`} className="font-bold text-gray-900 hover:text-blue-600 transition">
-                        {item.name}
-                      </Link>
-                      <p className="text-blue-600 font-black">${item.price}</p>
-                    </div>
+                  <div key={item._id} className="group relative bg-white border border-gray-100 rounded-sm hover:shadow-md transition p-2 flex flex-col">
+                    <Link to={`/product/${item._id}`}>
+                      <div className="aspect-square mb-2 overflow-hidden bg-gray-50">
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                      </div>
+                      <p className="text-xs text-gray-800 line-clamp-2 h-8 mb-2 leading-tight">{item.name}</p>
+                      <p className="text-shopee text-sm font-medium">₫{item.price.toLocaleString('vi-VN')}</p>
+                    </Link>
                     <button 
                       onClick={() => handleToggleWishlist(item._id)}
-                      className="p-2 text-gray-300 hover:text-red-500 transition self-start"
+                      className="absolute top-1 right-1 w-6 h-6 bg-black/40 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-shopee"
+                      title="Xóa khỏi yêu thích"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 ))}
@@ -251,6 +252,52 @@ const ProfilePage = () => {
                   </div>
                 ))
               )}
+            </div>
+          </section>
+
+          {/* Linked Accounts */}
+          <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <Share2 className="w-6 h-6 text-blue-600" />
+              <h2 className="text-2xl font-black text-gray-900">Liên kết mạng xã hội</h2>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <div className="flex items-center gap-4">
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-8 w-8" />
+                  <div>
+                    <p className="font-bold text-gray-900">Google</p>
+                    <p className="text-xs text-gray-500">
+                      {user.googleId ? 'Đã liên kết' : 'Chưa liên kết'}
+                    </p>
+                  </div>
+                </div>
+                {user.googleId ? (
+                  <CheckCircle className="w-6 h-6 text-green-500" />
+                ) : (
+                  <button 
+                    onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/auth/google`}
+                    className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-100 transition"
+                  >
+                    Liên kết
+                  </button>
+                )}
+              </div>
+
+              {/* Facebook */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 opacity-60">
+                <div className="flex items-center gap-4">
+                  <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook" className="h-8 w-8" />
+                  <div>
+                    <p className="font-bold text-gray-900">Facebook</p>
+                    <p className="text-xs text-gray-500">Sắp ra mắt</p>
+                  </div>
+                </div>
+                <button disabled className="px-4 py-2 bg-gray-200 rounded-xl text-sm font-bold cursor-not-allowed">
+                  Liên kết
+                </button>
+              </div>
             </div>
           </section>
         </div>
