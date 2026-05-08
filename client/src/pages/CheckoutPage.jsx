@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MapPin, CreditCard, ChevronRight, CheckCircle, Ticket, Info, Truck, MessageCircle } from 'lucide-react';
 import { CartContext } from '../context/CartContext';
@@ -25,6 +25,17 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [note, setMessage] = useState('');
 
+  const discountAmount = useMemo(() => couponInfo ? couponInfo.discountAmount : 0, [couponInfo]);
+  const finalTotal = useMemo(() => cartTotal - discountAmount + shippingFee, [cartTotal, discountAmount, shippingFee]);
+
+  const qrCodeUrl = useMemo(() => {
+    if (!bankDetails?.qrCodeTemplate) return '';
+    const randomId = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    return bankDetails.qrCodeTemplate
+      ?.replace('{amount}', Math.round(finalTotal).toString())
+      ?.replace('{orderId}', `ORD${randomId}`);
+  }, [bankDetails, finalTotal]);
+
   useEffect(() => {
     const fetchBankDetails = async () => {
       try {
@@ -48,22 +59,6 @@ const CheckoutPage = () => {
     }
   }, [user]);
 
-  if (!user) {
-    navigate('/login?redirect=checkout');
-    return null;
-  }
-
-  if (cartItems.length === 0) {
-    return (
-      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center p-4">
-         <div className="bg-white p-10 text-center shadow-sm rounded-sm">
-            <p className="text-gray-500 mb-6">Bạn chưa có sản phẩm nào để thanh toán</p>
-            <Link to="/" className="bg-shopee text-white px-8 py-2 rounded-sm font-medium">Quay lại mua sắm</Link>
-         </div>
-      </div>
-    );
-  }
-
   const handleApplyCoupon = async () => {
     if (!couponCode) return;
     try {
@@ -75,13 +70,6 @@ const CheckoutPage = () => {
       setCouponInfo(null);
     }
   };
-
-  const discountAmount = couponInfo ? couponInfo.discountAmount : 0;
-  const finalTotal = cartTotal - discountAmount + shippingFee;
-
-  const qrCodeUrl = bankDetails?.qrCodeTemplate
-    ?.replace('{amount}', Math.round(finalTotal))
-    ?.replace('{orderId}', `ORD${Date.now().toString().slice(-6)}`);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,11 +108,29 @@ const CheckoutPage = () => {
     }
   };
 
+  // Auth & Cart early returns after hooks
+  if (!user) {
+    useEffect(() => {
+      navigate('/login?redirect=checkout');
+    }, [navigate]);
+    return null;
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center p-4">
+         <div className="bg-white p-10 text-center shadow-sm rounded-sm">
+            <p className="text-gray-500 mb-6">Bạn chưa có sản phẩm nào để thanh toán</p>
+            <Link to="/" className="bg-shopee text-white px-8 py-2 rounded-sm font-medium">Quay lại mua sắm</Link>
+         </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-[#f5f5f5] min-h-screen pb-20">
+    <div className="bg-[#f5f5f5] min-h-screen pb-20 font-sans">
       <div className="max-w-5xl mx-auto px-4 pt-8">
         
-        {/* Step Header (Optional but Shopee-like) */}
         <div className="mb-6 flex items-center justify-between">
            <div className="flex items-center gap-2 text-shopee">
               <CheckCircle className="w-8 h-8 fill-current bg-white rounded-full" />
@@ -132,7 +138,6 @@ const CheckoutPage = () => {
            </div>
         </div>
 
-        {/* Shipping Address Section */}
         <div className="bg-white rounded-sm shadow-sm mb-3 relative overflow-hidden">
            <div className="h-1 bg-[repeating-linear-gradient(45deg,#ee4d2d,#ee4d2d_33px,#fff_33px,#fff_41px,#405fb0_41px,#405fb0_74px,#fff_74px,#fff_82px)]"></div>
            <div className="p-6">
@@ -153,7 +158,6 @@ const CheckoutPage = () => {
            </div>
         </div>
 
-        {/* Products Table Section */}
         <div className="bg-white rounded-sm shadow-sm mb-3 overflow-hidden">
            <div className="p-6 border-b border-gray-50 flex items-center justify-between text-sm text-gray-500">
               <span className="font-medium text-gray-800 text-base">Sản phẩm</span>
@@ -183,7 +187,6 @@ const CheckoutPage = () => {
               ))}
            </div>
 
-           {/* Voucher Bar */}
            <div className="bg-[#fafdff] p-6 border-t border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-shopee">
                  <Ticket className="w-5 h-5" />
@@ -206,7 +209,6 @@ const CheckoutPage = () => {
               </div>
            </div>
 
-           {/* Shipping Info & Message */}
            <div className="bg-[#fafdff] p-6 border-t border-gray-50 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="flex gap-4 items-start border-r border-gray-100 pr-8">
                  <span className="text-sm text-gray-500 whitespace-nowrap">Lời nhắn:</span>
@@ -229,13 +231,11 @@ const CheckoutPage = () => {
               </div>
            </div>
 
-           {/* Shop Total */}
            <div className="p-6 border-t border-gray-50 text-right">
               <p className="text-sm text-gray-500">Tổng số tiền ({cartItems.length} sản phẩm): <span className="text-xl text-shopee font-medium ml-2">₫{(cartTotal + shippingFee - discountAmount).toLocaleString('vi-VN')}</span></p>
            </div>
         </div>
 
-        {/* Payment Method Section */}
         <div className="bg-white rounded-sm shadow-sm p-6 mb-3">
            <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
               <h3 className="text-lg font-medium text-gray-800">Phương thức thanh toán</h3>
@@ -275,7 +275,6 @@ const CheckoutPage = () => {
               </div>
            )}
 
-           {/* Final Summary Table */}
            <div className="bg-[#fffefb] border-t border-gray-100 flex flex-col items-end gap-3 pt-8">
               <div className="grid grid-cols-2 gap-x-20 gap-y-3 text-right">
                  <span className="text-sm text-gray-500">Tổng tiền hàng</span>
@@ -290,7 +289,6 @@ const CheckoutPage = () => {
            </div>
         </div>
 
-        {/* Sticky Bottom Place Order Bar */}
         <div className="bg-white border-t border-gray-50 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] rounded-sm">
            <div className="text-xs text-gray-500 max-w-xl">
               Nhấn "Đặt hàng" đồng nghĩa với việc bạn đồng ý tuân theo <Link to="/" className="text-blue-600">Điều khoản ThanhLuanShop</Link>

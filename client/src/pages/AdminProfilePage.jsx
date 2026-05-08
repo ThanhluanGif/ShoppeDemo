@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Store, Camera, Save, Info, Globe, ShieldCheck, Phone, Mail, MapPin } from 'lucide-react';
+import { Store, Camera, Save, Info, Globe, ShieldCheck, Phone, Mail, MapPin, ChevronRight } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { get, put, post } from '../services/api';
 import toast from 'react-hot-toast';

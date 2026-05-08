@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, ShoppingBag, ArrowRight, Store, Ticket, ShieldCheck } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowRight, Store, Ticket, ShieldCheck, MessageCircle } from 'lucide-react';
 import { CartContext } from '../context/CartContext';
 
 const CartPage = () => {

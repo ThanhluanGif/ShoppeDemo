@@ -62,56 +62,89 @@ const HomePage = () => {
   }, [keyword, category, sort]);
 
   return (
-    <div className="bg-[#f5f5f5] min-h-screen pb-12">
+    <div className="bg-[#f5f5f5] min-h-screen pb-12 font-sans">
       <Helmet>
-        <title>ThanhLuanShop | Mua Sắm Công Nghệ Trực Tuyến</title>
+        <title>ThanhLuanShop | Premium Tech Store</title>
         <meta name="description" content="Mua sắm điện thoại, laptop, phụ kiện công nghệ chính hãng giá tốt nhất tại ThanhLuanShop." />
       </Helmet>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        
-        {/* Hero Banner - Shopee Style */}
-        {!keyword && !category && (
-          <div className="flex gap-2 mb-6">
-            <div className="w-full lg:w-2/3">
-              <img 
-                src="https://cf.shopee.vn/file/vn-50009109-170f3cc0d95d66359b35b611e9a2632b_xxhdpi" 
-                alt="Banner 1" 
-                className="w-full h-[235px] object-cover rounded-sm shadow-sm"
-                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&q=80'; }}
-              />
-            </div>
-            <div className="hidden lg:flex w-1/3 flex-col gap-2">
-              <img 
-                src="https://cf.shopee.vn/file/vn-50009109-e85d0bdba92e21b24e6abdf3fc0ebfbc_xhdpi" 
-                alt="Banner 2" 
-                className="w-full h-[113px] object-cover rounded-sm shadow-sm"
-                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&q=80'; }}
-              />
-              <img 
-                src="https://cf.shopee.vn/file/vn-50009109-90d0b04a9d18db7bc9bc9edeb80c85c2_xhdpi" 
-                alt="Banner 3" 
-                className="w-full h-[114px] object-cover rounded-sm shadow-sm"
-                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=400&q=80'; }}
-              />
+      {/* Hero Section - Redesigned with Premium Dark Gradient */}
+      {!keyword && !category && (
+        <div className="bg-gradient-to-b from-[#1a1a1a] to-[#f5f5f5] pt-6 pb-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Main Banner Slider Placeholder */}
+              <div className="w-full lg:w-2/3 relative group overflow-hidden rounded-md shadow-2xl">
+                <img 
+                  src="https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=2020&auto=format&fit=crop" 
+                  alt="Premium Tech Hero" 
+                  className="w-full h-[400px] object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center px-12">
+                   <span className="text-shopee font-bold tracking-widest text-sm mb-2 uppercase">Sự kiện công nghệ 2026</span>
+                   <h2 className="text-4xl md:text-5xl font-black text-white leading-tight max-w-md">
+                      Nâng Tầm Trải Nghiệm Số
+                   </h2>
+                   <p className="text-gray-300 mt-4 max-w-sm text-sm md:text-base">Khám phá bộ sưu tập thiết bị cao cấp nhất. Giảm giá tới 40% cho các dòng máy mới nhất.</p>
+                   <button className="mt-8 bg-shopee text-white px-8 py-3 rounded-sm font-bold w-fit hover:bg-shopee-hover transition shadow-lg shadow-shopee/20 uppercase tracking-wider text-sm">Khám Phá Ngay</button>
+                </div>
+              </div>
+
+              {/* Side Banners */}
+              <div className="hidden lg:flex w-1/3 flex-col gap-4">
+                <div className="relative flex-1 rounded-md overflow-hidden shadow-xl group">
+                   <img 
+                    src="https://images.unsplash.com/photo-1491933382434-500287f9b54b?q=80&w=1000&auto=format&fit=crop" 
+                    alt="Side Banner 1" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                   />
+                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+                   <div className="absolute bottom-6 left-6">
+                      <p className="text-white font-bold text-lg">Phụ Kiện Apple</p>
+                      <span className="text-shopee text-xs font-bold uppercase">Mua 1 Tặng 1</span>
+                   </div>
+                </div>
+                <div className="relative flex-1 rounded-md overflow-hidden shadow-xl group">
+                   <img 
+                    src="https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=1000&auto=format&fit=crop" 
+                    alt="Side Banner 2" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                   />
+                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+                   <div className="absolute bottom-6 left-6">
+                      <p className="text-white font-bold text-lg">Laptop Gaming</p>
+                      <span className="text-shopee text-xs font-bold uppercase">Giảm 5 Triệu</span>
+                   </div>
+                </div>
+              </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Categories Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Categories Section - Improved with Premium Icons */}
         {!keyword && !category && categories.length > 0 && (
-          <div className="bg-white mb-6 rounded-sm shadow-sm">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-gray-500 font-medium uppercase text-sm">Danh Mục</h2>
+          <div className="bg-white mb-6 rounded-sm shadow-sm border border-gray-100 -mt-8 relative z-10 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <h2 className="text-gray-800 font-bold uppercase text-sm tracking-wide flex items-center gap-2">
+                 <div className="w-1 h-4 bg-shopee"></div>
+                 Danh Mục Nổi Bật
+              </h2>
             </div>
             <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-10">
               {categories.map((cat) => (
-                <Link key={cat._id} to={`/?category=${cat.name}`} className="flex flex-col items-center justify-center p-4 border-r border-b border-gray-50 hover:shadow-md transition">
-                  <div className="w-12 h-12 mb-2 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
-                    {/* Placeholder for category image */}
-                    <img src={`https://ui-avatars.com/api/?name=${cat.name}&background=random&color=fff`} alt={cat.name} className="w-full h-full object-cover"/>
+                <Link key={cat._id} to={`/?category=${cat.name}`} className="flex flex-col items-center justify-center p-5 border-r border-b border-gray-50 hover:bg-gray-50/80 group transition">
+                  <div className="w-14 h-14 mb-3 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 group-hover:border-shopee group-hover:scale-110 transition-all shadow-sm">
+                    <img 
+                      src={cat.image || `https://ui-avatars.com/api/?name=${cat.name}&background=ee4d2d&color=fff&size=128`} 
+                      alt={cat.name} 
+                      className="w-full h-full object-cover opacity-90 group-hover:opacity-100"
+                      onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${cat.name}&background=ee4d2d&color=fff&size=128`; }}
+                    />
                   </div>
-                  <span className="text-[13px] text-gray-700 text-center line-clamp-2">{cat.name}</span>
+                  <span className="text-[12px] font-medium text-gray-700 text-center line-clamp-2 px-1 group-hover:text-shopee">{cat.name}</span>
                 </Link>
               ))}
             </div>
@@ -232,7 +265,7 @@ const HomePage = () => {
                         {product.isFlashSale ? product.flashSalePrice.toLocaleString('vi-VN') : product.price.toLocaleString('vi-VN')}
                       </span>
                       <span className="text-[10px] text-gray-500">
-                        Đã bán {product.numReviews > 0 ? (product.numReviews * 23 > 1000 ? `${(product.numReviews * 2.3).toFixed(1)}k` : product.numReviews * 23) : Math.floor(Math.random() * 500) + 10}
+                        Đã bán {product.numReviews > 0 ? (product.numReviews * 23 > 1000 ? `${(product.numReviews * 2.3).toFixed(1)}k` : product.numReviews * 23) : (parseInt(product._id.slice(-4), 16) % 400) + 50}
                       </span>
                     </div>
                   </div>

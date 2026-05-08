@@ -15,7 +15,8 @@ import {
   Search,
   Truck,
   Ticket,
-  BarChart2
+  BarChart2,
+  ArrowLeft
 } from 'lucide-react';
 
 const AdminLayout = ({ children }) => {

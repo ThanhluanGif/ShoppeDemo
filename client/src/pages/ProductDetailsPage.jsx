@@ -344,7 +344,7 @@ const ProductDetailsPage = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {product.reviews.map((review) => (
+                  {product.reviews.map((review, idx) => (
                     <div key={review._id} className="py-6 flex gap-4">
                       <div className="w-10 h-10 rounded-full bg-gray-100 shrink-0 overflow-hidden">
                         <img src={`https://ui-avatars.com/api/?name=${review.name}&background=random`} alt={review.name} />
@@ -359,7 +359,7 @@ const ProductDetailsPage = () => {
                         <p className="text-[10px] text-gray-500 mt-2 mb-3">{new Date(review.createdAt).toLocaleString('vi-VN')}</p>
                         <p className="text-sm text-gray-800 leading-relaxed mb-4">{review.comment}</p>
                         <div className="flex gap-4">
-                          <button className="text-xs text-gray-400 flex items-center gap-1 hover:text-shopee"><Heart className="w-3 h-3" /> {Math.floor(Math.random()*10)}</button>
+                          <button className="text-xs text-gray-400 flex items-center gap-1 hover:text-shopee"><Heart className="w-3 h-3" /> {(review._id ? parseInt(review._id.slice(-1), 16) : idx) % 15 + 5}</button>
                         </div>
                       </div>
                     </div>
