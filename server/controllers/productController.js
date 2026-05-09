@@ -16,9 +16,9 @@ const getProducts = async (req, res) => {
 
   // Vendor filtering for Admin/Seller Centre
   let vendorQuery = {};
-  // Check if it's an admin request (e.g. from /admin/products)
-  // In a real app we'd check the route, but here we can check if req.user exists and role is vendor
-  if (req.user && req.user.role === 'vendor') {
+  const isManagement = req.query.isManagement === 'true';
+  
+  if (isManagement && req.user && req.user.role === 'vendor') {
     vendorQuery = { vendor: req.user._id };
   }
 
@@ -32,6 +32,7 @@ const getProducts = async (req, res) => {
 
     const products = await Product.find(query)
       .populate('category', 'name')
+      .populate('vendor', 'shopName shopLogo shopDescription')
       .sort(sortQuery);
       
     res.json(products);
@@ -52,7 +53,9 @@ async function findCategoryId(name) {
 // @access  Public
 const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('category', 'name');
+    const product = await Product.findById(req.params.id)
+      .populate('category', 'name')
+      .populate('vendor', 'shopName shopLogo shopDescription');
 
     if (product) {
       res.json(product);
@@ -69,7 +72,9 @@ const getProductById = async (req, res) => {
 // @access  Public
 const getFlashSaleProducts = async (req, res) => {
   try {
-    const products = await Product.find({ isFlashSale: true }).limit(6);
+    const products = await Product.find({ isFlashSale: true })
+      .populate('vendor', 'shopName shopLogo shopDescription')
+      .limit(6);
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -177,6 +182,18 @@ const createProductReview = async (req, res) => {
     const product = await Product.findById(req.params.id);
 
     if (product) {
+      // Check if user has purchased this product
+      const Order = require('../models/Order');
+      const orders = await Order.find({ 
+        user: req.user._id, 
+        'orderItems.product': req.params.id,
+        status: 'Delivered'
+      });
+
+      if (orders.length === 0) {
+        return res.status(400).json({ message: 'Bạn chỉ có thể đánh giá sản phẩm sau khi đã mua và nhận hàng thành công' });
+      }
+
       const alreadyReviewed = product.reviews.find(
         (r) => r.user.toString() === req.user._id.toString()
       );

@@ -5,26 +5,65 @@ import { get, put, post } from '../services/api';
 import toast from 'react-hot-toast';
 
 const AdminProfilePage = () => {
-  const { user } = useContext(AuthContext);
+  const { user, updateUserState } = useContext(AuthContext);
   const [shopData, setShopData] = useState({
-    shopName: 'thanhluan shop',
-    description: 'Chuyên cung cấp các sản phẩm công nghệ chính hãng, uy tín hàng đầu.',
-    logo: 'https://ui-avatars.com/api/?name=TLS&background=ee4d2d&color=fff&size=128',
-    banner: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=2071',
-    phone: '0912 345 678',
-    email: 'contact@thanhluan.com',
-    address: 'Quận 1, TP. Hồ Chí Minh'
+    shopName: '',
+    shopDescription: '',
+    shopLogo: '',
+    phone: '',
+    email: '',
+    address: ''
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState({ logo: false, banner: false });
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    if (user) {
+      setShopData({
+        shopName: user.shopName || '',
+        shopDescription: user.shopDescription || '',
+        shopLogo: user.shopLogo || 'https://ui-avatars.com/api/?name=Shop&background=ee4d2d&color=fff&size=128',
+        shopBanner: user.shopBanner || 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=2071',
+        phone: user.phone || '',
+        email: user.email || '',
+        address: user.addresses?.[0]?.street || ''
+      });
+    }
+  }, [user]);
+
+  const handleUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    setUploading({ ...uploading, [type]: true });
+
+    try {
+      const { data } = await post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setShopData(prev => ({ ...prev, [type === 'logo' ? 'shopLogo' : 'shopBanner']: data.url }));
+      toast.success('Tải ảnh thành công!');
+    } catch (error) {
+      toast.error('Lỗi khi tải ảnh');
+    } finally {
+      setUploading({ ...uploading, [type]: false });
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Logic cập nhật hồ sơ shop (giả lập)
-    setTimeout(() => {
+    try {
+      const { data } = await put('/users/profile', shopData);
+      updateUserState(data);
       toast.success('Cập nhật hồ sơ Shop thành công!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -41,21 +80,23 @@ const AdminProfilePage = () => {
          {/* Banner & Logo Section */}
          <div className="bg-white rounded-sm shadow-sm overflow-hidden border border-gray-100">
             <div className="relative h-48 bg-gray-200">
-               <img src={shopData.banner} className="w-full h-full object-cover opacity-80" alt="Banner" />
-               <button type="button" className="absolute bottom-4 right-6 bg-black/50 text-white px-4 py-1.5 rounded-sm text-xs flex items-center gap-2 hover:bg-black/70 transition">
-                  <Camera className="w-4 h-4" /> Sửa ảnh bìa
-               </button>
+               <img src={shopData.shopBanner} className="w-full h-full object-cover opacity-80" alt="Banner" />
+               <label className="absolute bottom-4 right-6 bg-black/50 text-white px-4 py-1.5 rounded-sm text-xs flex items-center gap-2 hover:bg-black/70 transition cursor-pointer">
+                  <Camera className="w-4 h-4" /> {uploading.banner ? 'Đang tải...' : 'Sửa ảnh bìa'}
+                  <input type="file" className="hidden" onChange={(e) => handleUpload(e, 'banner')} accept="image/*" />
+               </label>
                
                <div className="absolute -bottom-10 left-10 flex items-end gap-4">
                   <div className="relative group">
-                     <img src={shopData.logo} className="w-28 h-28 rounded-full border-4 border-white shadow-md object-cover bg-white" alt="Logo" />
-                     <button type="button" className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                     <img src={shopData.shopLogo} className="w-28 h-28 rounded-full border-4 border-white shadow-md object-cover bg-white" alt="Logo" />
+                     <label className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                         <Camera className="w-6 h-6 text-white" />
-                     </button>
+                        <input type="file" className="hidden" onChange={(e) => handleUpload(e, 'logo')} accept="image/*" />
+                     </label>
                   </div>
                   <div className="mb-4">
                      <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 drop-shadow-sm">
-                        {shopData.shopName}
+                        {shopData.shopName || 'Tên Shop'}
                         <ShieldCheck className="w-5 h-5 text-blue-500 fill-blue-500 bg-white rounded-full" />
                      </h2>
                      <p className="text-xs text-gray-500 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-sm inline-block">Yêu thích+</p>
@@ -86,8 +127,8 @@ const AdminProfilePage = () => {
                   <textarea 
                     rows="3"
                     className="w-full border border-gray-200 rounded-sm px-4 py-2 text-sm focus:border-shopee outline-none transition resize-none"
-                    value={shopData.description}
-                    onChange={(e) => setShopData({...shopData, description: e.target.value})}
+                    value={shopData.shopDescription}
+                    onChange={(e) => setShopData({...shopData, shopDescription: e.target.value})}
                   ></textarea>
                </div>
 

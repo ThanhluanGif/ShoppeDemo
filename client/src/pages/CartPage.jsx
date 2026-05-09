@@ -6,6 +6,20 @@ import { CartContext } from '../context/CartContext';
 const CartPage = () => {
   const { cartItems, removeFromCart, updateQuantity, cartTotal } = useContext(CartContext);
   const navigate = useNavigate();
+  
+  // Group items by vendor
+  const groupedItems = cartItems.reduce((acc, item) => {
+    const vendorId = item.vendor?._id || 'default';
+    if (!acc[vendorId]) {
+      acc[vendorId] = {
+        vendorInfo: item.vendor || { shopName: 'ThanhLuan Shop', shopLogo: '' },
+        items: []
+      };
+    }
+    acc[vendorId].items.push(item);
+    return acc;
+  }, {});
+
   const [selectedItems, setSelectedItems] = useState(cartItems.map(item => item._id));
 
   const toggleSelect = (id) => {
@@ -21,6 +35,18 @@ const CartPage = () => {
       setSelectedItems([]);
     } else {
       setSelectedItems(cartItems.map(item => item._id));
+    }
+  };
+
+  const toggleSelectGroup = (vendorId) => {
+    const groupItems = groupedItems[vendorId].items.map(i => i._id);
+    const allSelected = groupItems.every(id => selectedItems.includes(id));
+    
+    if (allSelected) {
+      setSelectedItems(selectedItems.filter(id => !groupItems.includes(id)));
+    } else {
+      const newSelected = [...new Set([...selectedItems, ...groupItems])];
+      setSelectedItems(newSelected);
     }
   };
 
@@ -71,88 +97,91 @@ const CartPage = () => {
           <div className="w-[10%] text-center">Thao Tác</div>
         </div>
 
-        {/* Shop Group */}
-        <div className="bg-white rounded-sm shadow-sm mb-4">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <input 
-              type="checkbox" 
-              className="w-4 h-4 accent-shopee cursor-pointer mr-3"
-              checked={selectedItems.length === cartItems.length && cartItems.length > 0}
-              onChange={toggleSelectAll}
-            />
-            <div className="bg-shopee text-white text-[10px] px-1 font-bold rounded-sm">Mall</div>
-            <span className="text-sm font-medium text-gray-800 flex items-center gap-1">
-              thanhluan shop <Store className="w-4 h-4 text-shopee" />
-            </span>
-            <MessageCircle className="w-4 h-4 text-shopee ml-2 cursor-pointer" />
-          </div>
+        {/* Shop Groups */}
+        {Object.entries(groupedItems).map(([vendorId, group]) => (
+          <div key={vendorId} className="bg-white rounded-sm shadow-sm mb-4">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                className="w-4 h-4 accent-shopee cursor-pointer mr-3"
+                checked={group.items.every(item => selectedItems.includes(item._id))}
+                onChange={() => toggleSelectGroup(vendorId)}
+              />
+              <div className="bg-red-600 text-white text-[10px] px-1 font-bold rounded-sm uppercase tracking-tighter">Mall</div>
+              <span className="text-sm font-medium text-gray-800 flex items-center gap-2">
+                {group.vendorInfo.shopName} <Store className="w-4 h-4 text-shopee" />
+              </span>
+              <MessageCircle className="w-4 h-4 text-shopee ml-2 cursor-pointer" />
+            </div>
 
-          <div className="divide-y divide-gray-100">
-            {cartItems.map((item) => (
-              <div key={item._id} className="px-5 py-5 flex items-center gap-5 md:gap-0 flex-wrap md:flex-nowrap">
-                <div className="w-full md:w-[45%] flex items-center gap-5">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 accent-shopee cursor-pointer"
-                    checked={selectedItems.includes(item._id)}
-                    onChange={() => toggleSelect(item._id)}
-                  />
-                  <Link to={`/product/${item._id}`} className="flex items-center gap-3">
-                    <img src={item.image} alt={item.name} className="w-20 h-20 object-cover border border-gray-100" />
-                    <div className="flex flex-col gap-1">
-                      <h3 className="text-sm text-gray-800 line-clamp-2 hover:text-shopee transition">{item.name}</h3>
-                      <div className="flex items-center gap-1 mt-1">
-                        <img src="https://deo.shopeemobile.com/shopee/shopee-pcmall-live-sg/product/7cd6145ad7ca72ae96ef.png" alt="Return" className="h-4" />
-                        <span className="text-[11px] text-shopee">7 ngày trả hàng</span>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-
-                <div className="w-1/3 md:w-[15%] text-center flex flex-col md:block items-center">
-                  <span className="md:hidden text-xs text-gray-400">Đơn giá:</span>
-                  <span className="text-sm text-gray-800">₫{item.price.toLocaleString('vi-VN')}</span>
-                </div>
-
-                <div className="w-1/3 md:w-[15%] flex justify-center items-center">
-                  <div className="flex items-center border border-gray-200">
-                    <button 
-                      onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                      className="px-2.5 py-0.5 text-gray-500 hover:bg-gray-50 border-r border-gray-200"
-                    >
-                      -
-                    </button>
+            <div className="divide-y divide-gray-100">
+              {group.items.map((item) => (
+                <div key={item._id} className="px-5 py-5 flex items-center gap-5 md:gap-0 flex-wrap md:flex-nowrap">
+                  <div className="w-full md:w-[45%] flex items-center gap-5">
                     <input 
-                      type="text" 
-                      value={item.quantity} 
-                      className="w-12 text-center text-sm outline-none"
-                      readOnly
+                      type="checkbox" 
+                      className="w-4 h-4 accent-shopee cursor-pointer"
+                      checked={selectedItems.includes(item._id)}
+                      onChange={() => toggleSelect(item._id)}
                     />
+                    <Link to={`/product/${item._id}`} className="flex items-center gap-3 group">
+                      <img src={item.image} alt={item.name} className="w-20 h-20 object-cover border border-gray-100" />
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-sm text-gray-800 line-clamp-2 group-hover:text-shopee transition">{item.name}</h3>
+                        {item.selectedVariation && (
+                           <div className="text-xs text-gray-400 mt-1">
+                              Phân loại: {item.selectedVariation.size || item.selectedVariation.color}
+                           </div>
+                        )}
+                      </div>
+                    </Link>
+                  </div>
+
+                  <div className="w-1/3 md:w-[15%] text-center flex flex-col md:block items-center">
+                    <span className="md:hidden text-xs text-gray-400">Đơn giá:</span>
+                    <span className="text-sm text-gray-800">₫{item.price.toLocaleString('vi-VN')}</span>
+                  </div>
+
+                  <div className="w-1/3 md:w-[15%] flex justify-center items-center">
+                    <div className="flex items-center border border-gray-200">
+                      <button 
+                        onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                        className="px-2.5 py-0.5 text-gray-500 hover:bg-gray-50 border-r border-gray-200"
+                      >
+                        -
+                      </button>
+                      <input 
+                        type="text" 
+                        value={item.quantity} 
+                        className="w-12 text-center text-sm outline-none"
+                        readOnly
+                      />
+                      <button 
+                        onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                        className="px-2.5 py-0.5 text-gray-500 hover:bg-gray-50 border-l border-gray-200"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="w-1/3 md:w-[15%] text-center">
+                    <span className="text-sm text-shopee font-medium">₫{(item.price * item.quantity).toLocaleString('vi-VN')}</span>
+                  </div>
+
+                  <div className="w-full md:w-[10%] text-center mt-4 md:mt-0">
                     <button 
-                      onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                      className="px-2.5 py-0.5 text-gray-500 hover:bg-gray-50 border-l border-gray-200"
+                      onClick={() => removeFromCart(item._id)}
+                      className="text-sm text-gray-700 hover:text-shopee transition"
                     >
-                      +
+                      Xóa
                     </button>
                   </div>
                 </div>
-
-                <div className="w-1/3 md:w-[15%] text-center">
-                  <span className="text-sm text-shopee font-medium">₫{(item.price * item.quantity).toLocaleString('vi-VN')}</span>
-                </div>
-
-                <div className="w-full md:w-[10%] text-center mt-4 md:mt-0">
-                  <button 
-                    onClick={() => removeFromCart(item._id)}
-                    className="text-sm text-gray-700 hover:text-shopee transition"
-                  >
-                    Xóa
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
 
         {/* Shop Voucher Bar */}
         <div className="bg-[#fffefb] border border-gray-100 px-5 py-4 mb-3 rounded-sm flex items-center justify-between">

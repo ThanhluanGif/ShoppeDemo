@@ -393,11 +393,58 @@ const googleAuthCallback = async (req, res) => {
   res.redirect(`${frontendUrl}/auth-success?token=${token}&user=${encodeURIComponent(userData)}`);
 };
 
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+const updateUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (user) {
+      user.username = req.body.username || user.username;
+      user.email = req.body.email || user.email;
+      user.phone = req.body.phone || user.phone;
+      user.avatar = req.body.avatar || user.avatar;
+
+      // Vendor-specific fields
+      if (user.role === 'vendor' || user.role === 'admin') {
+        user.shopName = req.body.shopName || user.shopName;
+        user.shopDescription = req.body.shopDescription || user.shopDescription;
+        user.shopLogo = req.body.shopLogo || user.shopLogo;
+        user.shopBanner = req.body.shopBanner || user.shopBanner;
+      }
+
+      if (req.body.password) {
+        user.password = req.body.password;
+      }
+
+      const updatedUser = await user.save();
+
+      res.json({
+        _id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        shopName: updatedUser.shopName,
+        shopDescription: updatedUser.shopDescription,
+        shopLogo: updatedUser.shopLogo,
+        shopBanner: updatedUser.shopBanner,
+        token: generateToken(updatedUser._id),
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   verifyEmail,
   loginUser,
   getUserProfile,
+  updateUserProfile,
   toggleWishlist,
   addAddress,
   removeAddress,

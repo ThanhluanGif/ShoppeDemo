@@ -5,6 +5,7 @@ const {
   verifyEmail, 
   loginUser, 
   getUserProfile, 
+  updateUserProfile,
   toggleWishlist, 
   addAddress, 
   removeAddress, 
@@ -33,6 +34,7 @@ router.get('/auth/google/callback',
 
 router.get('/', protect, isAdmin, getUsers);
 router.get('/profile', protect, getUserProfile);
+router.put('/profile', protect, updateUserProfile);
 router.put('/register-vendor', protect, registerVendor);
 router.put('/:id/approve-vendor', protect, isAdmin, approveVendor);
 

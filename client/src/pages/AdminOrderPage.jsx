@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Truck, CheckCircle, Clock, Eye, DollarSign, AlertCircle, Search, ChevronDown, Download, HelpCircle, Mail, Phone } from 'lucide-react';
 import { get, put } from '../services/api';
+import OrderModal from '../components/OrderModal';
+import toast from 'react-hot-toast';
 
 const AdminOrderPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusTab, setStatusTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const { data } = await get('/orders');
+      const { data } = await get('/orders?isManagement=true');
       setOrders(data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -28,11 +33,10 @@ const AdminOrderPage = () => {
     if (window.confirm('Xác nhận đã giao đơn hàng này?')) {
       try {
         await put(`/orders/${id}/deliver`);
-        alert('Cập nhật trạng thái giao hàng thành công!');
+        toast.success('Cập nhật trạng thái giao hàng thành công!');
         fetchOrders();
       } catch (error) {
-        console.error('Error updating delivery status:', error);
-        alert('Có lỗi xảy ra.');
+        toast.error('Có lỗi xảy ra.');
       }
     }
   };
@@ -41,13 +45,30 @@ const AdminOrderPage = () => {
     if (window.confirm('Xác nhận khách hàng đã thanh toán thành công?')) {
       try {
         await put(`/orders/${id}/pay`);
-        alert('Xác nhận thanh toán thành công!');
+        toast.success('Xác nhận thanh toán thành công!');
         fetchOrders();
       } catch (error) {
-        console.error('Error updating payment status:', error);
-        alert('Có lỗi xảy ra.');
+        toast.error('Có lỗi xảy ra.');
       }
     }
+  };
+
+  const handleUpdateStatus = async (id, status) => {
+     if (window.confirm(`Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng thành ${status}?`)) {
+        try {
+           await put(`/orders/${id}/status`, { status });
+           toast.success('Cập nhật trạng thái thành công!');
+           fetchOrders();
+           setIsModalOpen(false);
+        } catch (error) {
+           toast.error(error.response?.data?.message || 'Có lỗi xảy ra');
+        }
+     }
+  };
+
+  const openOrderDetails = (order) => {
+     setSelectedOrder(order);
+     setIsModalOpen(true);
   };
 
   const tabs = [
@@ -241,7 +262,10 @@ const AdminOrderPage = () => {
                             Chuẩn bị hàng
                           </button>
                         )}
-                        <button className="text-xs text-blue-600 hover:font-bold transition-all mt-1">
+                        <button 
+                          onClick={() => openOrderDetails(order)}
+                          className="text-xs text-blue-600 hover:font-bold transition-all mt-1"
+                        >
                           Chi tiết đơn hàng
                         </button>
                       </div>
@@ -253,6 +277,13 @@ const AdminOrderPage = () => {
           </table>
         </div>
       </div>
+
+      <OrderModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        order={selectedOrder}
+        onUpdateStatus={handleUpdateStatus}
+      />
     </div>
   );
 };

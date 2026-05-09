@@ -42,4 +42,32 @@ const isAdmin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, isAdmin };
+// Middleware to check if user is Admin or Vendor (Staff)
+const isStaff = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'vendor')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Not authorized. Staff only.' });
+  }
+};
+
+// Middleware to optionally populate req.user if token exists
+const optionalProtect = async (req, res, next) => {
+  let token;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select('-password');
+      next();
+    } catch (error) {
+      console.error('Optional protect error:', error.message);
+      next(); // Continue even if token fails
+    }
+  } else {
+    next();
+  }
+};
+
+module.exports = { protect, isAdmin, isStaff, optionalProtect };

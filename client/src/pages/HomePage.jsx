@@ -268,6 +268,10 @@ const HomePage = () => {
                         Đã bán {product.numReviews > 0 ? (product.numReviews * 23 > 1000 ? `${(product.numReviews * 2.3).toFixed(1)}k` : product.numReviews * 23) : (parseInt(product._id.slice(-4), 16) % 400) + 50}
                       </span>
                     </div>
+                    {/* Location */}
+                    <div className="text-[10px] text-gray-400 mt-1 text-right">
+                       {product.vendor?.addresses?.[0]?.city || 'Hà Nội'}
+                    </div>
                   </div>
                 </div>
               </Link>

@@ -97,7 +97,21 @@ const CheckoutPage = () => {
         note
       };
 
-      await post('/orders', orderData);
+      const { data: createdOrder } = await post('/orders', orderData);
+      
+      if (paymentMethod === 'VNPay') {
+         const { data: paymentData } = await post('/payment/create_payment_url', {
+            orderId: createdOrder._id,
+            amount: finalTotal,
+            bankCode: '' // Can be optional
+         });
+         
+         if (paymentData.paymentUrl) {
+            window.location.href = paymentData.paymentUrl;
+            return;
+         }
+      }
+
       toast.success('Đặt hàng thành công! Cảm ơn bạn.');
       clearCart();
       navigate('/profile');
@@ -240,7 +254,7 @@ const CheckoutPage = () => {
            <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
               <h3 className="text-lg font-medium text-gray-800">Phương thức thanh toán</h3>
               <div className="flex flex-wrap gap-2">
-                 {['Ví ShopeePay', 'Apple Pay', 'Thẻ Tín dụng/Ghi nợ', 'Chuyển khoản Ngân hàng', 'Thanh toán khi nhận hàng'].map((method) => (
+                 {['Ví ShopeePay', 'VNPay', 'Apple Pay', 'Thẻ Tín dụng/Ghi nợ', 'Chuyển khoản Ngân hàng', 'Thanh toán khi nhận hàng'].map((method) => (
                     <button 
                       key={method}
                       onClick={() => setPaymentMethod(method === 'Thanh toán khi nhận hàng' ? 'COD' : method === 'Chuyển khoản Ngân hàng' ? 'Bank Transfer' : method)}

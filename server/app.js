@@ -7,6 +7,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const configRoutes = require('./routes/configRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const passport = require('passport');
 require('./config/passport');
 
@@ -27,5 +28,6 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/payment', paymentRoutes);
 
 module.exports = app;

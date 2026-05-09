@@ -3,7 +3,7 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 
-// @desc    Create new order
+// @desc    Create new orders (splits by vendor)
 // @route   POST /api/orders
 // @access  Private
 const addOrderItems = async (req, res) => {
@@ -20,43 +20,97 @@ const addOrderItems = async (req, res) => {
   if (orderItems && orderItems.length === 0) {
     res.status(400).json({ message: 'No order items' });
     return;
-  } else {
-    try {
-      // Find the vendor of the first product (Simplified: 1 vendor per order)
-      const firstProduct = await Product.findById(orderItems[0].product).populate('vendor');
-      const vendor = firstProduct?.vendor;
+  }
+
+  try {
+    // 1. Group items by vendor
+    const itemsByVendor = {};
+    for (const item of orderItems) {
+      const product = await Product.findById(item.product || item._id).populate('vendor');
+      const vendorId = product.vendor?._id?.toString() || 'admin';
+      
+      if (!itemsByVendor[vendorId]) {
+        itemsByVendor[vendorId] = {
+          vendor: product.vendor,
+          items: [],
+          itemsPrice: 0
+        };
+      }
+      itemsByVendor[vendorId].items.push({
+        ...item,
+        product: item.product || item._id,
+        _id: undefined
+      });
+      itemsByVendor[vendorId].itemsPrice += item.price * item.quantity;
+    }
+
+    const vendorIds = Object.keys(itemsByVendor);
+    const createdOrders = [];
+
+    // 2. Create an order for each vendor
+    for (let i = 0; i < vendorIds.length; i++) {
+      const vId = vendorIds[i];
+      const group = itemsByVendor[vId];
+      const vendor = group.vendor;
+
+      const sPrice = i === 0 ? (shippingPrice || 0) : 0;
+      const dPrice = i === 0 ? (discountPrice || 0) : 0;
+      const tPrice = group.itemsPrice + sPrice - dPrice;
 
       const order = new Order({
-        orderItems: orderItems.map((x) => ({
-          ...x,
-          product: x.product || x._id,
-          _id: undefined,
-        })),
+        orderItems: group.items,
         user: req.user._id,
         vendor: vendor?._id || null,
-        commissionRate: vendor?.commissionRate || 5, // 5% default
+        commissionRate: vendor?.commissionRate || 5,
         shippingAddress,
         paymentMethod,
-        totalPrice,
-        shippingPrice,
-        discountPrice,
-        note
+        itemsPrice: group.itemsPrice,
+        shippingPrice: sPrice,
+        discountPrice: dPrice,
+        totalPrice: tPrice,
+        note: i === 0 ? note : ''
       });
 
-      const createdOrder = await order.save();
+      // Calculate commission
+      order.adminCommission = (order.itemsPrice * order.commissionRate) / 100;
+      order.vendorEarnings = order.itemsPrice - order.adminCommission;
 
-      // Send Confirmation Email
+      const createdOrder = await order.save();
+      createdOrders.push(createdOrder);
+
+      // Decrease Stock
+      for (const item of group.items) {
+        const product = await Product.findById(item.product);
+        if (product) {
+          if (item.selectedVariation && product.variations?.length > 0) {
+            const variation = product.variations.find(v => 
+              (v.size === item.selectedVariation.size) && 
+              (v.color === item.selectedVariation.color)
+            );
+            if (variation) {
+               variation.countInStock -= item.quantity;
+            }
+          } else {
+            product.countInStock -= item.quantity;
+          }
+          await product.save();
+        }
+      }
+
+      // Send Confirmation Email for each order
       const emailHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
-          <h2 style="color: #ee4d2d;">Cảm ơn bạn đã đặt hàng!</h2>
+          <h2 style="color: #ee4d2d;">Xác nhận đơn hàng #${createdOrder._id.toString().slice(-6)}</h2>
           <p>Xin chào ${req.user.username},</p>
-          <p>Đơn hàng của bạn <strong>#${createdOrder._id.toString().slice(-6)}</strong> đã được tiếp nhận thành công.</p>
+          <p>Đơn hàng của bạn từ shop <strong>${vendor?.shopName || 'Hệ thống'}</strong> đã được tiếp nhận.</p>
           <hr/>
           <h4>Chi tiết đơn hàng:</h4>
           <ul>
-            ${orderItems.map(item => `<li>${item.name} x ${item.quantity} - ₫${item.price.toLocaleString('vi-VN')}</li>`).join('')}
+            ${group.items.map(item => `<li>${item.name} x ${item.quantity} - ₫${item.price.toLocaleString('vi-VN')}</li>`).join('')}
           </ul>
-          <p><strong>Tổng cộng: ₫${totalPrice.toLocaleString('vi-VN')}</strong></p>
+          <p>Phí vận chuyển: ₫${sPrice.toLocaleString('vi-VN')}</p>
+          <p>Giảm giá: -₫${dPrice.toLocaleString('vi-VN')}</p>
+          <p><strong>Tổng cộng: ₫${tPrice.toLocaleString('vi-VN')}</strong></p>
           <p>Phương thức thanh toán: ${paymentMethod}</p>
           <hr/>
           <p>Chúng tôi sẽ sớm liên hệ để giao hàng cho bạn.</p>
@@ -73,11 +127,11 @@ const addOrderItems = async (req, res) => {
       } catch (err) {
         console.error('Email sending failed:', err.message);
       }
-
-      res.status(201).json(createdOrder);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
     }
+
+    res.status(201).json(createdOrders.length === 1 ? createdOrders[0] : createdOrders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -86,7 +140,9 @@ const addOrderItems = async (req, res) => {
 // @access  Private
 const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate('user', 'username email');
+    const order = await Order.findById(req.params.id)
+      .populate('user', 'username email')
+      .populate('vendor', 'shopName shopLogo');
 
     if (order) {
       res.json(order);
@@ -104,7 +160,8 @@ const getOrderById = async (req, res) => {
 const getOrders = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role === 'vendor') {
+    const isManagement = req.query.isManagement === 'true';
+    if (isManagement && req.user.role === 'vendor') {
        query.vendor = req.user._id;
     }
     
@@ -185,7 +242,8 @@ const getMyOrders = async (req, res) => {
 const getOrderStats = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role === 'vendor') {
+    const isManagement = req.query.isManagement === 'true';
+    if (isManagement && req.user.role === 'vendor') {
        query.vendor = req.user._id;
     }
 
@@ -224,12 +282,198 @@ const calculateCommission = async (order) => {
   }
 };
 
+// @desc    Update order status
+// @route   PUT /api/orders/:id/status
+// @access  Private/Admin/Vendor
+const updateOrderStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      // Check permission: User can only cancel their own order
+      if (req.user.role === 'customer' && order.user.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to update this order' });
+      }
+
+      // Logic for cancellation
+      if (status === 'Cancelled' && order.status !== 'Cancelled') {
+        if (order.status === 'Delivered') {
+          return res.status(400).json({ message: 'Cannot cancel a delivered order' });
+        }
+        
+        // Restore Stock
+        for (const item of order.orderItems) {
+           const product = await Product.findById(item.product);
+           if (product) {
+              if (item.selectedVariation && product.variations?.length > 0) {
+                 const variation = product.variations.find(v => 
+                    (v.size === item.selectedVariation.size) && 
+                    (v.color === item.selectedVariation.color)
+                 );
+                 if (variation) {
+                    variation.countInStock += item.quantity;
+                 }
+              } else {
+                 product.countInStock += item.quantity;
+              }
+              await product.save();
+           }
+        }
+        order.status = 'Cancelled';
+      } else if (status !== 'Cancelled') {
+        // Only admin/vendor can set other statuses
+        if (req.user.role === 'customer') {
+           return res.status(403).json({ message: 'Customers can only cancel orders' });
+        }
+        order.status = status;
+      }
+
+      const updatedOrder = await order.save();
+      res.json(updatedOrder);
+    } else {
+      res.status(404).json({ message: 'Order not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get advanced order statistics for dashboard
+// @route   GET /api/orders/advanced-stats
+// @access  Private/Admin/Vendor
+const getAdvancedStats = async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    let matchQuery = {
+      isPaid: true,
+      createdAt: { $gte: thirtyDaysAgo }
+    };
+
+    if (req.user.role === 'vendor') {
+      matchQuery.vendor = req.user._id;
+    }
+
+    // 1. Daily Revenue (Last 30 days)
+    const dailyRevenue = await Order.aggregate([
+      {
+        $match: matchQuery
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          total: { $sum: "$totalPrice" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // 2. Category Distribution
+    const categoryMatchQuery = { isPaid: true };
+    if (req.user.role === 'vendor') {
+      categoryMatchQuery.vendor = req.user._id;
+    }
+
+    const categoryDistribution = await Order.aggregate([
+      { $match: categoryMatchQuery },
+      { $unwind: "$orderItems" },
+      {
+        $lookup: {
+          from: "products",
+          localField: "orderItems.product",
+          foreignField: "_id",
+          as: "productInfo"
+        }
+      },
+      { $unwind: "$productInfo" },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "productInfo.category",
+          foreignField: "_id",
+          as: "categoryInfo"
+        }
+      },
+      { $unwind: "$categoryInfo" },
+      {
+        $group: {
+          _id: "$categoryInfo.name",
+          value: { $sum: { $multiply: ["$orderItems.price", "$orderItems.quantity"] } }
+        }
+      }
+    ]);
+
+    // 3. Top Selling Products
+    const topProducts = await Order.aggregate([
+      { $match: categoryMatchQuery },
+      { $unwind: "$orderItems" },
+      {
+        $group: {
+          _id: "$orderItems.product",
+          name: { $first: "$orderItems.name" },
+          totalSold: { $sum: "$orderItems.quantity" },
+          revenue: { $sum: { $multiply: ["$orderItems.price", "$orderItems.quantity"] } }
+        }
+      },
+      { $sort: { totalSold: -1 } },
+      { $limit: 5 }
+    ]);
+
+    // 4. Vendor Specific: Top Vendors (Only for Admin)
+    let topVendors = [];
+    if (req.user.role === 'admin') {
+      topVendors = await Order.aggregate([
+        { $match: { isPaid: true } },
+        {
+          $group: {
+            _id: "$vendor",
+            totalRevenue: { $sum: "$totalPrice" },
+            orderCount: { $sum: 1 }
+          }
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "vendorInfo"
+          }
+        },
+        { $unwind: "$vendorInfo" },
+        {
+          $project: {
+            shopName: "$vendorInfo.shopName",
+            totalRevenue: 1,
+            orderCount: 1
+          }
+        },
+        { $sort: { totalRevenue: -1 } },
+        { $limit: 5 }
+      ]);
+    }
+
+    res.json({
+      dailyRevenue,
+      categoryDistribution,
+      topProducts,
+      topVendors
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   addOrderItems,
   getOrderById,
   getOrders,
   updateOrderToDelivered,
   updateOrderToPaid,
+  updateOrderStatus,
   getMyOrders,
-  getOrderStats
+  getOrderStats,
+  getAdvancedStats
 };

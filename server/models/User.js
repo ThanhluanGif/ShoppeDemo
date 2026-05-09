@@ -85,6 +85,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'https://ui-avatars.com/api/?name=Shop&background=ee4d2d&color=fff'
   },
+  shopBanner: {
+    type: String,
+    default: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=2071'
+  },
   balance: {
     type: Number,
     default: 0

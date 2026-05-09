@@ -14,7 +14,7 @@ const AdminProductPage = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const { data } = await get('/products');
+      const { data } = await get('/products?isManagement=true');
       setProducts(data);
     } catch (error) {
       console.error('Error fetching products:', error);

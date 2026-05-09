@@ -443,9 +443,15 @@ const ProductDetailsPage = () => {
           <div className="w-full lg:w-80 shrink-0">
              <div className="bg-white p-4 rounded-sm shadow-sm sticky top-[150px]">
                 <div className="flex items-center gap-3 pb-4 border-b border-gray-100 mb-4">
-                   <div className="w-12 h-12 rounded-full bg-shopee flex items-center justify-center text-white font-black text-lg">TLS</div>
+                   <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-100">
+                      <img 
+                        src={product.vendor?.shopLogo || `https://ui-avatars.com/api/?name=${product.vendor?.shopName || 'Shop'}&background=ee4d2d&color=fff`} 
+                        alt={product.vendor?.shopName}
+                        className="w-full h-full object-cover"
+                      />
+                   </div>
                    <div>
-                      <p className="text-sm font-medium text-gray-800 uppercase">thanhluan shop</p>
+                      <p className="text-sm font-medium text-gray-800 uppercase line-clamp-1">{product.vendor?.shopName || 'ThanhLuan Shop'}</p>
                       <p className="text-[10px] text-gray-500">Online 5 phút trước</p>
                    </div>
                 </div>

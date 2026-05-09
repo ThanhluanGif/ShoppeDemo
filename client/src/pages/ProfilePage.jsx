@@ -1,8 +1,10 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Heart, MapPin, Trash2, Plus, User as UserIcon, Phone, Mail, Package, Share2, CheckCircle } from 'lucide-react';
-import { post, del, get } from '../services/api';
+import { Heart, MapPin, Trash2, Plus, User as UserIcon, Phone, Mail, Package, Share2, CheckCircle, ChevronRight } from 'lucide-react';
+import { post, del, get, put } from '../services/api';
 import { Link } from 'react-router-dom';
+import OrderModal from '../components/OrderModal';
+import toast from 'react-hot-toast';
 
 const ProfilePage = () => {
   const { user, updateUserState, logout } = useContext(AuthContext);
@@ -11,19 +13,42 @@ const ProfilePage = () => {
   const [myOrders, setMyOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchMyOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const { data } = await get('/orders/myorders');
+      setMyOrders(data);
+    } catch (error) {
+      console.error('Fetch orders error', error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchMyOrders = async () => {
-      try {
-        const { data } = await get('/orders/myorders');
-        setMyOrders(data);
-      } catch (error) {
-        console.error('Fetch orders error', error);
-      } finally {
-        setOrdersLoading(false);
-      }
-    };
     if (user) fetchMyOrders();
   }, [user]);
+
+  const handleCancelOrder = async (id, status) => {
+     if (window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
+        try {
+           await put(`/orders/${id}/status`, { status: 'Cancelled' });
+           toast.success('Hủy đơn hàng thành công');
+           fetchMyOrders();
+           setIsModalOpen(false);
+        } catch (error) {
+           toast.error(error.response?.data?.message || 'Không thể hủy đơn hàng này');
+        }
+     }
+  };
+
+  const openOrderDetails = (order) => {
+     setSelectedOrder(order);
+     setIsModalOpen(true);
+  };
 
   const handleToggleWishlist = async (productId) => {
     try {
@@ -103,11 +128,20 @@ const ProfilePage = () => {
             ) : (
               <div className="space-y-4">
                 {myOrders.map((order) => (
-                  <div key={order._id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition">
+                  <div 
+                    key={order._id} 
+                    onClick={() => openOrderDetails(order)}
+                    className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer group"
+                  >
                     <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                      <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Mã đơn: #{order._id.slice(-6)}</p>
-                        <p className="text-sm font-bold text-gray-600">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</p>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-blue-50 transition">
+                           <Package className="w-6 h-6 text-gray-400 group-hover:text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Mã đơn: #{order._id.slice(-6).toUpperCase()}</p>
+                          <p className="text-sm font-bold text-gray-600">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</p>
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
@@ -116,13 +150,19 @@ const ProfilePage = () => {
                           {order.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
                         </span>
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                          order.isDelivered ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'
+                          order.status === 'Delivered' ? 'bg-blue-100 text-blue-600' : 
+                          order.status === 'Cancelled' ? 'bg-gray-100 text-gray-500' : 
+                          'bg-yellow-100 text-yellow-600'
                         }`}>
-                          {order.isDelivered ? 'Đã giao hàng' : 'Đang xử lý'}
+                          {order.status === 'Delivered' ? 'Đã giao hàng' : 
+                           order.status === 'Cancelled' ? 'Đã hủy' : 'Đang xử lý'}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xl font-black text-gray-900">${order.totalPrice.toFixed(2)}</p>
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-xl font-black text-gray-900">₫{order.totalPrice.toLocaleString('vi-VN')}</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-600 transition" />
                       </div>
                     </div>
                   </div>
@@ -130,6 +170,13 @@ const ProfilePage = () => {
               </div>
             )}
           </section>
+
+          <OrderModal 
+            isOpen={isModalOpen} 
+            onClose={() => setIsModalOpen(false)} 
+            order={selectedOrder}
+            onUpdateStatus={handleCancelOrder}
+          />
 
           {/* Wishlist */}
           <section className="bg-white p-6 rounded-sm shadow-sm border border-gray-100">
