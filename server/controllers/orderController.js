@@ -442,10 +442,15 @@ const getAdvancedStats = async (req, res) => {
             as: "vendorInfo"
           }
         },
-        { $unwind: "$vendorInfo" },
         {
           $project: {
-            shopName: "$vendorInfo.shopName",
+            shopName: { 
+              $cond: { 
+                if: { $eq: ["$_id", null] }, 
+                then: "Hệ thống (Admin)", 
+                else: { $arrayElemAt: ["$vendorInfo.shopName", 0] } 
+              } 
+            },
             totalRevenue: 1,
             orderCount: 1
           }

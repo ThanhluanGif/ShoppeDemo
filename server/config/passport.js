@@ -2,48 +2,52 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/api/users/auth/google/callback",
-    proxy: true
-  },
-  async (accessToken, refreshToken, profile, done) => {
-    try {
-      // Check if user already exists in our DB
-      let user = await User.findOne({ 
-        $or: [
-          { googleId: profile.id },
-          { email: profile.emails[0].value }
-        ]
-      });
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/api/users/auth/google/callback",
+      proxy: true
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Check if user already exists in our DB
+        let user = await User.findOne({ 
+          $or: [
+            { googleId: profile.id },
+            { email: profile.emails[0].value }
+          ]
+        });
 
-      if (user) {
-        // If user exists but doesn't have googleId (registered locally), link it
-        if (!user.googleId) {
-          user.googleId = profile.id;
-          user.authMethod = 'google';
-          await user.save();
+        if (user) {
+          // If user exists but doesn't have googleId (registered locally), link it
+          if (!user.googleId) {
+            user.googleId = profile.id;
+            user.authMethod = 'google';
+            await user.save();
+          }
+          return done(null, user);
         }
+
+        // If user doesn't exist, create a new one
+        user = await User.create({
+          username: profile.displayName.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000),
+          email: profile.emails[0].value,
+          googleId: profile.id,
+          authMethod: 'google',
+          avatar: profile.photos[0].value,
+          isVerified: true // Social login users are verified by default
+        });
+
         return done(null, user);
+      } catch (err) {
+        return done(err, null);
       }
-
-      // If user doesn't exist, create a new one
-      user = await User.create({
-        username: profile.displayName.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000),
-        email: profile.emails[0].value,
-        googleId: profile.id,
-        authMethod: 'google',
-        avatar: profile.photos[0].value,
-        isVerified: true // Social login users are verified by default
-      });
-
-      return done(null, user);
-    } catch (err) {
-      return done(err, null);
     }
-  }
-));
+  ));
+} else {
+  console.warn('Cảnh báo: GOOGLE_CLIENT_ID hoặc GOOGLE_CLIENT_SECRET thiếu trong .env. Tính năng đăng nhập bằng Google sẽ không hoạt động.');
+}
 
 passport.serializeUser((user, done) => {
   done(null, user.id);

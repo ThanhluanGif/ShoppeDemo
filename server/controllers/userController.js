@@ -112,11 +112,22 @@ const verifyEmail = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
+  const fs = require('fs');
+  const log = (msg) => fs.appendFileSync('login_debug.log', `${new Date().toISOString()} - ${msg}\n`);
 
   try {
+    log(`Attempting login for: ${email}`);
     const user = await User.findOne({ email }).select('+password');
 
-    if (user && (await user.comparePassword(password))) {
+    if (!user) {
+      log(`User not found: ${email}`);
+      return res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác' });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    log(`Password match for ${email}: ${isMatch}`);
+
+    if (isMatch) {
       res.json({
         _id: user._id,
         username: user.username,
@@ -128,6 +139,7 @@ const loginUser = async (req, res) => {
       res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác' });
     }
   } catch (error) {
+    log(`Error during login for ${email}: ${error.message}`);
     res.status(500).json({ message: error.message });
   }
 };

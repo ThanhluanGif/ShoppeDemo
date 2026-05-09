@@ -45,27 +45,32 @@ const AdminDashboard = () => {
 
         const responses = await Promise.all(endpoints);
         
-        const products = responses[0].data;
-        const orders = responses[1].data;
-        const statsRes = responses[2].data;
-        const advancedStatsRes = responses[3].data;
+        const products = Array.isArray(responses[0]?.data) ? responses[0].data : [];
+        const orders = Array.isArray(responses[1]?.data) ? responses[1].data : [];
+        const statsRes = responses[2]?.data || {};
+        const advancedStatsRes = responses[3]?.data || {};
         
         let users = [];
-        if (user?.role === 'admin') {
-          users = responses[4].data;
+        if (user?.role === 'admin' && responses[4]) {
+          users = Array.isArray(responses[4]?.data) ? responses[4].data : [];
         }
 
         setStats({
           totalProducts: products.length,
-          totalOrders: statsRes.totalOrders,
-          totalRevenue: statsRes.totalRevenue,
+          totalOrders: statsRes?.totalOrders || 0,
+          totalRevenue: statsRes?.totalRevenue || 0,
           totalUsers: user?.role === 'admin' ? users.filter(u => u.role === 'customer').length : 0,
           pendingOrders: orders.filter(o => o.status === 'Pending').length,
           outOfStock: products.filter(p => p.countInStock <= 0).length,
           totalVendors: user?.role === 'admin' ? users.filter(u => u.role === 'vendor').length : 0
         });
 
-        setAdvancedStats(advancedStatsRes);
+        setAdvancedStats({
+          dailyRevenue: Array.isArray(advancedStatsRes?.dailyRevenue) ? advancedStatsRes.dailyRevenue : [],
+          categoryDistribution: Array.isArray(advancedStatsRes?.categoryDistribution) ? advancedStatsRes.categoryDistribution : [],
+          topProducts: Array.isArray(advancedStatsRes?.topProducts) ? advancedStatsRes.topProducts : [],
+          topVendors: Array.isArray(advancedStatsRes?.topVendors) ? advancedStatsRes.topVendors : []
+        });
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
       } finally {
@@ -74,6 +79,15 @@ const AdminDashboard = () => {
     };
     if (user) fetchStats();
   }, [user]);
+
+  const safeFormatDate = (dateStr, formatStr) => {
+    try {
+      if (!dateStr) return '';
+      return format(parseISO(dateStr), formatStr);
+    } catch (e) {
+      return dateStr || '';
+    }
+  };
 
   const COLORS = ['#ee4d2d', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -157,12 +171,12 @@ const AdminDashboard = () => {
                       <XAxis 
                         dataKey="_id" 
                         tick={{fontSize: 10}} 
-                        tickFormatter={(str) => format(parseISO(str), 'dd/MM')}
+                        tickFormatter={(str) => safeFormatDate(str, 'dd/MM')}
                       />
                       <YAxis tick={{fontSize: 10}} tickFormatter={(val) => `₫${val/1000}k`} />
                       <Tooltip 
                         contentStyle={{borderRadius: '4px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
-                        labelFormatter={(str) => format(parseISO(str), 'dd MMMM, yyyy')}
+                        labelFormatter={(str) => safeFormatDate(str, 'dd MMMM, yyyy')}
                         formatter={(val) => [`₫${val.toLocaleString()}`, 'Doanh thu']}
                       />
                       <Area type="monotone" dataKey="total" stroke="#ee4d2d" fillOpacity={1} fill="url(#colorTotal)" strokeWidth={2} />
@@ -178,23 +192,27 @@ const AdminDashboard = () => {
                   <Store className="w-5 h-5 text-shopee" /> Top Cửa Hàng Doanh Thu Cao
                </h3>
                <div className="space-y-4">
-                  {advancedStats.topVendors?.map((vendor, idx) => (
-                     <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-sm hover:bg-gray-100 transition border border-transparent hover:border-gray-200">
-                        <div className="flex items-center gap-4">
-                           <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${idx === 0 ? 'bg-yellow-400 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                              {idx + 1}
-                           </div>
-                           <div>
-                              <p className="text-sm font-bold text-gray-800">{vendor.shopName || 'Shop chưa đặt tên'}</p>
-                              <p className="text-xs text-gray-500">{vendor.orderCount} đơn hàng</p>
-                           </div>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-sm font-black text-shopee">₫{vendor.totalRevenue.toLocaleString()}</p>
-                           <p className="text-[10px] text-gray-400 italic">Doanh thu tháng này</p>
-                        </div>
-                     </div>
-                  ))}
+                  {advancedStats.topVendors?.length > 0 ? (
+                    advancedStats.topVendors.map((vendor, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-sm hover:bg-gray-100 transition border border-transparent hover:border-gray-200">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${idx === 0 ? 'bg-yellow-400 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                {idx + 1}
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-800">{vendor.shopName || 'Shop chưa đặt tên'}</p>
+                                <p className="text-xs text-gray-500">{vendor.orderCount} đơn hàng</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-black text-shopee">₫{(vendor.totalRevenue || 0).toLocaleString()}</p>
+                            <p className="text-[10px] text-gray-400 italic">Doanh thu tháng này</p>
+                          </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-400 text-sm italic">Chưa có dữ liệu cửa hàng</div>
+                  )}
                </div>
             </div>
           ) : (
@@ -228,7 +246,7 @@ const AdminDashboard = () => {
                  <div className="flex justify-between items-start">
                     <div>
                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Tổng doanh thu</p>
-                       <p className="text-2xl font-black text-gray-800 mt-1">₫{stats.totalRevenue.toLocaleString()}</p>
+                       <p className="text-2xl font-black text-gray-800 mt-1">₫{(stats.totalRevenue || 0).toLocaleString()}</p>
                     </div>
                     <div className="p-2 bg-red-50 rounded-lg">
                        <DollarSign className="w-5 h-5 text-shopee" />
@@ -282,7 +300,7 @@ const AdminDashboard = () => {
                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                        </Pie>
-                       <Tooltip formatter={(val) => `₫${val.toLocaleString()}`} />
+                       <Tooltip formatter={(val) => `₫${(val || 0).toLocaleString()}`} />
                        <Legend layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{fontSize: '10px'}} />
                     </PieChart>
                  </ResponsiveContainer>
