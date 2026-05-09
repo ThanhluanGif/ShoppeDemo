@@ -29,11 +29,23 @@ const AdminOrderPage = () => {
     fetchOrders();
   }, []);
 
+  const handleShip = async (id) => {
+    if (window.confirm('Xác nhận bắt đầu giao đơn hàng này?')) {
+      try {
+        await put(`/orders/${id}/ship`);
+        toast.success('Đã cập nhật trạng thái: Đang giao hàng');
+        fetchOrders();
+      } catch (error) {
+        toast.error('Có lỗi xảy ra.');
+      }
+    }
+  };
+
   const handleDeliver = async (id) => {
-    if (window.confirm('Xác nhận đã giao đơn hàng này?')) {
+    if (window.confirm('Xác nhận đã giao đơn hàng thành công?')) {
       try {
         await put(`/orders/${id}/deliver`);
-        toast.success('Cập nhật trạng thái giao hàng thành công!');
+        toast.success('Đã hoàn thành đơn hàng!');
         fetchOrders();
       } catch (error) {
         toast.error('Có lỗi xảy ra.');
@@ -246,7 +258,7 @@ const AdminOrderPage = () => {
 
                     <td className="px-6 py-4 align-top text-right">
                       <div className="flex flex-col gap-2 items-end">
-                        {!order.isPaid && order.paymentMethod === 'Bank Transfer' && (
+                        {!order.isPaid && order.paymentMethod === 'Bank Transfer' && order.status === 'Pending' && (
                           <button 
                             onClick={() => handlePay(order._id)}
                             className="bg-shopee text-white px-4 py-1.5 rounded-sm text-xs font-medium hover:bg-shopee-hover transition w-full"
@@ -254,12 +266,28 @@ const AdminOrderPage = () => {
                             Xác nhận tiền
                           </button>
                         )}
-                        {!order.isDelivered && (
+                        {order.status === 'Pending' && (order.isPaid || order.paymentMethod === 'COD') && (
+                           <button 
+                            onClick={() => handleUpdateStatus(order._id, 'Processing')}
+                            className="bg-blue-600 text-white px-4 py-1.5 rounded-sm text-xs font-medium hover:bg-blue-700 transition w-full"
+                          >
+                            Xác nhận đơn
+                          </button>
+                        )}
+                        {order.status === 'Processing' && (
+                          <button 
+                            onClick={() => handleShip(order._id)}
+                            className="bg-white border border-blue-600 text-blue-600 px-4 py-1.5 rounded-sm text-xs font-medium hover:bg-blue-50 transition w-full"
+                          >
+                            Giao hàng
+                          </button>
+                        )}
+                        {order.status === 'Shipped' && (
                           <button 
                             onClick={() => handleDeliver(order._id)}
                             className="bg-white border border-shopee text-shopee px-4 py-1.5 rounded-sm text-xs font-medium hover:bg-[#ff572205] transition w-full"
                           >
-                            Chuẩn bị hàng
+                            Hoàn thành
                           </button>
                         )}
                         <button 

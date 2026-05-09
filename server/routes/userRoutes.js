@@ -32,6 +32,13 @@ router.get('/auth/google/callback',
   googleAuthCallback
 );
 
+// Facebook Auth Routes
+router.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+router.get('/auth/facebook/callback',
+  passport.authenticate('facebook', { failureRedirect: '/login', session: false }),
+  googleAuthCallback // Reusing the same callback as logic is identical
+);
+
 router.get('/', protect, isAdmin, getUsers);
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);

@@ -1,81 +1,68 @@
 const Category = require('../models/Category');
+const asyncHandler = require('../utils/asyncHandler');
 
 // @desc    Get all categories
 // @route   GET /api/categories
 // @access  Public
-const getCategories = async (req, res) => {
-  try {
-    const categories = await Category.find({});
-    res.json(categories);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+const getCategories = asyncHandler(async (req, res) => {
+  const categories = await Category.find({});
+  res.json(categories);
+});
 
 // @desc    Create a category
 // @route   POST /api/categories
 // @access  Private/Admin
-const createCategory = async (req, res) => {
+const createCategory = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
-  try {
-    const slug = name.toLowerCase().replace(/[^\w ]+/g, '').replace(/\s+/g, '-');
-    const category = new Category({
-      name,
-      slug,
-      description
-    });
+  const slug = name.toLowerCase().replace(/[^\w ]+/g, '').replace(/\s+/g, '-');
+  const category = new Category({
+    name,
+    slug,
+    description
+  });
 
-    const createdCategory = await category.save();
-    res.status(201).json(createdCategory);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
+  const createdCategory = await category.save();
+  res.status(201).json(createdCategory);
+});
 
 // @desc    Update a category
 // @route   PUT /api/categories/:id
 // @access  Private/Admin
-const updateCategory = async (req, res) => {
+const updateCategory = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
-  try {
-    const category = await Category.findById(req.params.id);
+  const category = await Category.findById(req.params.id);
 
-    if (category) {
-      category.name = name || category.name;
-      if (name) {
-        category.slug = name.toLowerCase().replace(/[^\w ]+/g, '').replace(/\s+/g, '-');
-      }
-      category.description = description || category.description;
-
-      const updatedCategory = await category.save();
-      res.json(updatedCategory);
-    } else {
-      res.status(404).json({ message: 'Category not found' });
+  if (category) {
+    category.name = name || category.name;
+    if (name) {
+      category.slug = name.toLowerCase().replace(/[^\w ]+/g, '').replace(/\s+/g, '-');
     }
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+    category.description = description || category.description;
+
+    const updatedCategory = await category.save();
+    res.json(updatedCategory);
+  } else {
+    res.status(404);
+    throw new Error('Category not found');
   }
-};
+});
 
 // @desc    Delete a category
 // @route   DELETE /api/categories/:id
 // @access  Private/Admin
-const deleteCategory = async (req, res) => {
-  try {
-    const category = await Category.findById(req.params.id);
+const deleteCategory = asyncHandler(async (req, res) => {
+  const category = await Category.findById(req.params.id);
 
-    if (category) {
-      await category.deleteOne();
-      res.json({ message: 'Category removed' });
-    } else {
-      res.status(404).json({ message: 'Category not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (category) {
+    await category.deleteOne();
+    res.json({ message: 'Category removed' });
+  } else {
+    res.status(404);
+    throw new Error('Category not found');
   }
-};
+});
 
 module.exports = {
   getCategories,

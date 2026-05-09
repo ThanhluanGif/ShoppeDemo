@@ -104,71 +104,43 @@ const ProfilePage = () => {
 
         {/* Main Content */}
         <div className="lg:col-span-3 space-y-8">
-          {/* Order History */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <Package className="w-6 h-6 text-blue-600" />
-              <h2 className="text-2xl font-black text-gray-900">Lịch sử đơn hàng</h2>
+          {/* Order History Summary */}
+          <section className="bg-white p-6 rounded-sm shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6 border-b pb-4">
+               <div className="flex items-center gap-3">
+                  <Package className="w-5 h-5 text-blue-600" />
+                  <h2 className="text-lg font-bold text-gray-800 tracking-tight uppercase">Đơn hàng của tôi</h2>
+               </div>
+               <Link to="/my-orders" className="text-shopee text-sm font-medium flex items-center gap-1 hover:underline">
+                  Xem tất cả <ChevronRight className="w-4 h-4" />
+               </Link>
             </div>
             
-            {ordersLoading ? (
-              <div className="animate-pulse flex space-x-4">
-                <div className="flex-1 space-y-4 py-1">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded"></div>
-                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                  </div>
-                </div>
-              </div>
-            ) : myOrders.length === 0 ? (
-              <div className="bg-gray-50 p-12 rounded-3xl text-center text-gray-500 font-medium border border-dashed border-gray-300">
-                Bạn chưa có đơn hàng nào. Hãy mua sắm ngay!
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {myOrders.map((order) => (
-                  <div 
-                    key={order._id} 
-                    onClick={() => openOrderDetails(order)}
-                    className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer group"
-                  >
-                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-blue-50 transition">
-                           <Package className="w-6 h-6 text-gray-400 group-hover:text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Mã đơn: #{order._id.slice(-6).toUpperCase()}</p>
-                          <p className="text-sm font-bold text-gray-600">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                          order.isPaid ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
-                        }`}>
-                          {order.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                          order.status === 'Delivered' ? 'bg-blue-100 text-blue-600' : 
-                          order.status === 'Cancelled' ? 'bg-gray-100 text-gray-500' : 
-                          'bg-yellow-100 text-yellow-600'
-                        }`}>
-                          {order.status === 'Delivered' ? 'Đã giao hàng' : 
-                           order.status === 'Cancelled' ? 'Đã hủy' : 'Đang xử lý'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <p className="text-xl font-black text-gray-900">₫{order.totalPrice.toLocaleString('vi-VN')}</p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-600 transition" />
-                      </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+               {[
+                 { label: 'Chờ xác nhận', icon: Clock, status: 'Pending' },
+                 { label: 'Chờ lấy hàng', icon: Package, status: 'Processing' },
+                 { label: 'Đang giao', icon: Truck, status: 'Shipped' },
+                 { label: 'Đã giao', icon: CheckCircle, status: 'Delivered' },
+                 { label: 'Đã hủy', icon: Trash2, status: 'Cancelled' }
+               ].map((item, idx) => (
+                 <Link 
+                  key={idx} 
+                  to={`/my-orders?status=${item.status}`}
+                  className="flex flex-col items-center gap-2 p-4 hover:bg-gray-50 rounded-sm transition group"
+                 >
+                    <div className="relative">
+                       <item.icon className="w-6 h-6 text-gray-500 group-hover:text-shopee transition" />
+                       {myOrders.filter(o => o.status === item.status).length > 0 && (
+                         <span className="absolute -top-2 -right-2 bg-shopee text-white text-[10px] px-1.5 rounded-full border border-white">
+                            {myOrders.filter(o => o.status === item.status).length}
+                         </span>
+                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                    <span className="text-[11px] text-gray-600 text-center">{item.label}</span>
+                 </Link>
+               ))}
+            </div>
           </section>
 
           <OrderModal 

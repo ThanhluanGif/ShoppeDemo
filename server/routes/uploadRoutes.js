@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/uploadMiddleware');
-const { protect, isAdmin } = require('../middleware/authMiddleware');
+const { protect, isAdmin, isStaff } = require('../middleware/authMiddleware');
 
-router.post('/', protect, isAdmin, upload.single('image'), (req, res) => {
+router.post('/', protect, isStaff, upload.single('image'), (req, res) => {
   if (req.file) {
     res.json({ url: req.file.path });
   } else {

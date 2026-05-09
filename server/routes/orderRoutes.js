@@ -4,6 +4,7 @@ const {
   addOrderItems, 
   getOrderById, 
   getOrders, 
+  updateOrderToShipped,
   updateOrderToDelivered, 
   updateOrderToPaid, 
   updateOrderStatus, 
@@ -21,6 +22,7 @@ router.get('/myorders', protect, getMyOrders);
 router.get('/stats', protect, isStaff, getOrderStats);
 router.get('/advanced-stats', protect, isStaff, getAdvancedStats);
 router.get('/:id', protect, getOrderById);
+router.put('/:id/ship', protect, isStaff, updateOrderToShipped);
 router.put('/:id/deliver', protect, isStaff, updateOrderToDelivered);
 router.put('/:id/pay', protect, isAdmin, updateOrderToPaid);
 router.put('/:id/status', protect, updateOrderStatus);

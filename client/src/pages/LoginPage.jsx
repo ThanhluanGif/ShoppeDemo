@@ -39,6 +39,10 @@ const LoginPage = () => {
     window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/auth/google`;
   };
 
+  const handleFacebookLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/auth/facebook`;
+  };
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100-64px)] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
@@ -94,7 +98,7 @@ const LoginPage = () => {
             <div className="flex-grow border-t border-gray-300"></div>
           </div>
 
-          <div>
+          <div className="space-y-3">
             <button
               type="button"
               onClick={handleGoogleLogin}
@@ -102,6 +106,14 @@ const LoginPage = () => {
             >
               <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2" />
               Đăng nhập bằng Google
+            </button>
+            <button
+              type="button"
+              onClick={handleFacebookLogin}
+              className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-[#1877F2] text-sm font-medium text-white hover:bg-[#166fe5] transition-colors"
+            >
+              <img src="https://www.svgrepo.com/show/475643/facebook-color.svg" alt="Facebook" className="h-5 w-5 mr-2 bg-white rounded-full" />
+              Đăng nhập bằng Facebook
             </button>
           </div>
 

@@ -30,10 +30,13 @@
     "nodemailer": "^8.0.7",
     "nodemon": "^3.1.14",
     "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
     "postcss": "^8.5.14",
     "qs": "^6.15.1",
     "react-router-dom": "^7.15.0",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
   }
 }

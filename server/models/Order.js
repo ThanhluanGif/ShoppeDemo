@@ -79,6 +79,18 @@ const orderSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    isCommissionDistributed: {
+      type: Boolean,
+      default: false,
+    },
+    refundAmount: {
+      type: Number,
+      default: 0,
+    },
+    riskAmount: {
+      type: Number,
+      default: 0,
+    },
     coupon: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Coupon',

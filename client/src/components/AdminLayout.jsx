@@ -16,7 +16,8 @@ import {
   Truck,
   Ticket,
   BarChart2,
-  ArrowLeft
+  ArrowLeft,
+  MessageSquare
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
@@ -31,6 +32,12 @@ const AdminLayout = ({ children }) => {
       items: [
         { title: 'Tất cả', path: '/admin/orders', icon: ShoppingBag },
         { title: 'Giao hàng', path: '/admin/shipping', icon: Truck },
+      ]
+    },
+    {
+      title: 'Chăm sóc khách hàng',
+      items: [
+        { title: 'Chat với khách', path: '/admin/chat', icon: MessageSquare },
       ]
     },
     {

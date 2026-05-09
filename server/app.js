@@ -8,8 +8,11 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const configRoutes = require('./routes/configRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const passport = require('passport');
 require('./config/passport');
+
+const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
 
@@ -29,5 +32,9 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/messages', messageRoutes);
+
+app.use(notFound);
+app.use(errorHandler);
 
 module.exports = app;

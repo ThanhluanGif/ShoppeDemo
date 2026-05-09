@@ -119,17 +119,30 @@ const AdminDashboard = () => {
                </p>
             </div>
          </div>
-         <div className="hidden md:flex gap-4">
-            <div className="text-center px-6 border-r border-gray-100">
-               <p className="text-[13px] text-gray-500">{user?.role === 'admin' ? 'Tổng Cửa Hàng' : 'Đánh giá Shop'}</p>
-               <p className="text-lg font-bold text-shopee">{user?.role === 'admin' ? stats.totalVendors : '4.9/5.0'}</p>
-            </div>
-            <div className="text-center px-6">
-               <p className="text-[13px] text-gray-500">{user?.role === 'admin' ? 'Hoa Hồng Hệ Thống' : 'Tỉ lệ phản hồi'}</p>
-               <p className="text-lg font-bold text-shopee">{user?.role === 'admin' ? '5%' : '98%'}</p>
-            </div>
-         </div>
       </div>
+
+      {/* Financial Breakdown (Admin Only) */}
+      {user?.role === 'admin' && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in slide-in-from-top-4 duration-500">
+           <div className="bg-white p-4 rounded-sm shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-500 uppercase font-bold">Tổng Doanh Thu</p>
+              <p className="text-xl font-black text-blue-600 mt-1">₫{(advancedStats.financialSummary?.totalRevenue || 0).toLocaleString()}</p>
+           </div>
+           <div className="bg-white p-4 rounded-sm shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-500 uppercase font-bold">Tổng Hoàn Trả</p>
+              <p className="text-xl font-black text-orange-500 mt-1">₫{(advancedStats.financialSummary?.totalRefund || 0).toLocaleString()}</p>
+           </div>
+           <div className="bg-white p-4 rounded-sm shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-500 uppercase font-bold">Rủi Ro / Tổn Thất</p>
+              <p className="text-xl font-black text-red-500 mt-1">₫{(advancedStats.financialSummary?.totalRisk || 0).toLocaleString()}</p>
+           </div>
+           <div className="bg-white p-4 rounded-sm shadow-sm border border-green-200 bg-green-50">
+              <p className="text-xs text-green-700 uppercase font-bold">Hoa Hồng Hệ Thống (Net)</p>
+              <p className="text-2xl font-black text-green-600 mt-1">₫{(advancedStats.financialSummary?.totalAdminCommission || 0).toLocaleString()}</p>
+              <p className="text-[10px] text-green-500 italic mt-1">= Doanh thu - Hoàn trả - Rủi ro</p>
+           </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

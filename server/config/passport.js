@@ -1,5 +1,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const FacebookStrategy = require('passport-facebook').Strategy;
 const User = require('../models/User');
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -45,8 +46,51 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       }
     }
   ));
-} else {
-  console.warn('Cảnh báo: GOOGLE_CLIENT_ID hoặc GOOGLE_CLIENT_SECRET thiếu trong .env. Tính năng đăng nhập bằng Google sẽ không hoạt động.');
+}
+
+if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
+  passport.use(new FacebookStrategy({
+      clientID: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+      callbackURL: "/api/users/auth/facebook/callback",
+      profileFields: ['id', 'displayName', 'emails', 'photos'],
+      proxy: true
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails ? profile.emails[0].value : `${profile.id}@facebook.com`;
+        
+        let user = await User.findOne({ 
+          $or: [
+            { facebookId: profile.id },
+            { email: email }
+          ]
+        });
+
+        if (user) {
+          if (!user.facebookId) {
+            user.facebookId = profile.id;
+            user.authMethod = 'facebook';
+            await user.save();
+          }
+          return done(null, user);
+        }
+
+        user = await User.create({
+          username: profile.displayName.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000),
+          email: email,
+          facebookId: profile.id,
+          authMethod: 'facebook',
+          avatar: profile.photos ? profile.photos[0].value : 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+          isVerified: true
+        });
+
+        return done(null, user);
+      } catch (err) {
+        return done(err, null);
+      }
+    }
+  ));
 }
 
 passport.serializeUser((user, done) => {

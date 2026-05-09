@@ -15,7 +15,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(fullUser));
     } catch (error) {
       console.error("Failed to fetch profile", error);
-      // Optional: logout if token is invalid
+      if (error.response?.status === 401) {
+        logout();
+      }
     }
   };
 
